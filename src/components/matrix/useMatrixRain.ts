@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 
 import { randomChar } from '@/lib/audio';
+import { getColumnPointerInfluence, tickMatrixPointerSmooth } from '@/lib/matrixPointer';
 import { usePlayerStore } from '@/stores/playerStore';
 import type { MatrixColumn, MatrixConfig } from '@/types/matrix';
 
@@ -113,6 +114,8 @@ export const useMatrixRain = (
     ctx.textBaseline = 'top';
 
     const columns = columnsRef.current;
+    tickMatrixPointerSmooth();
+
     if (isBeatRef.current && columns.length > 0 && energy > 0.08) {
       const burstCount = 2 + Math.floor(energy * 6);
       for (let i = 0; i < burstCount; i += 1) {
@@ -129,10 +132,13 @@ export const useMatrixRain = (
 
     for (let i = 0; i < columns.length; i += 1) {
       const column = columns[i];
+      const pointerPull = getColumnPointerInfluence(column.x, column.y, logicalWidth, logicalHeight);
+
       if (!column.active) {
-        if (Math.random() < currentConfig.density * (0.02 + energy * 0.04)) {
+        const spawnChance = currentConfig.density * (0.02 + energy * 0.04 + pointerPull * 0.35);
+        if (Math.random() < spawnChance) {
           column.active = true;
-          column.y = -Math.random() * logicalHeight * 0.2;
+          column.y = pointerPull > 0.35 ? column.y - currentConfig.fontSize * 2 : -Math.random() * logicalHeight * 0.2;
         }
         continue;
       }
@@ -143,22 +149,28 @@ export const useMatrixRain = (
         column.chars.length = column.length;
       }
 
-      const headY = column.y;
+      if (pointerPull > 0.45) {
+        column.length = Math.min(40, column.length + 1);
+      }
 
-      const headGlow = 12 + energy * 28;
+      const headY = column.y;
+      const headBrightness = Math.min(1, currentConfig.brightness * (1 + energy * 0.35 + pointerPull * 0.55));
+      const headGlow = 12 + energy * 28 + pointerPull * 36;
+
       ctx.shadowBlur = headGlow;
       ctx.shadowColor = '#00FF88';
-      ctx.fillStyle = colorWithBrightness(0, 255, 136, Math.min(1, currentConfig.brightness * (1 + energy * 0.35)), 1);
+      ctx.fillStyle = colorWithBrightness(0, 255, 136, headBrightness, 1);
       ctx.fillText(column.chars[0] ?? randomChar(), column.x, headY);
 
       ctx.shadowBlur = 0;
       for (let j = 1; j < column.chars.length; j += 1) {
         const alpha = Math.max(0.08, 1 - j / column.length);
-        ctx.fillStyle = colorWithBrightness(0, 255, 159, currentConfig.brightness, alpha);
+        const trailBrightness = Math.min(1, currentConfig.brightness * (1 + pointerPull * 0.25));
+        ctx.fillStyle = colorWithBrightness(0, 255, 159, trailBrightness, alpha);
         ctx.fillText(column.chars[j] ?? randomChar(), column.x, headY - j * currentConfig.fontSize);
       }
 
-      const speedMul = 1 + energy * 1.2;
+      const speedMul = (1 + energy * 1.2) * (1 + pointerPull * 1.6);
       column.y += column.speed * speedMul;
 
       if (column.y > logicalHeight + column.length * currentConfig.fontSize) {

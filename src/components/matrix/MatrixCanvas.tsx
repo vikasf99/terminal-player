@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { CHAR_SET } from '@/lib/audio';
+import { clearMatrixPointer, setMatrixPointer } from '@/lib/matrixPointer';
 import { useMatrixRain } from '@/components/matrix/useMatrixRain';
 import type { MatrixConfig } from '@/types/matrix';
 
@@ -89,6 +90,37 @@ export function MatrixCanvas() {
       stop();
     };
   }, [start, stop, updateConfig]);
+
+  useEffect(() => {
+    const onMove = (event: MouseEvent): void => {
+      setMatrixPointer(event.clientX, event.clientY);
+    };
+
+    const onTouch = (event: TouchEvent): void => {
+      const touch = event.touches[0];
+      if (!touch) {
+        return;
+      }
+      setMatrixPointer(touch.clientX, touch.clientY);
+    };
+
+    const onLeave = (): void => {
+      clearMatrixPointer();
+    };
+
+    window.addEventListener('mousemove', onMove, { passive: true });
+    window.addEventListener('touchmove', onTouch, { passive: true });
+    window.addEventListener('touchend', onLeave);
+    window.addEventListener('mouseleave', onLeave);
+
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('touchmove', onTouch);
+      window.removeEventListener('touchend', onLeave);
+      window.removeEventListener('mouseleave', onLeave);
+      clearMatrixPointer();
+    };
+  }, []);
 
   useEffect(() => {
     const onVisibility = (): void => {

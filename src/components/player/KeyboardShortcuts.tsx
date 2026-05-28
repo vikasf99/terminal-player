@@ -14,7 +14,9 @@ type ShortcutRow = {
 const PLAYBACK_SHORTCUTS: ShortcutRow[] = [
   { keys: 'space', action: 'play / pause' },
   { keys: '←  →', action: 'seek backward / forward 10 seconds' },
-  { keys: '↑  ↓', action: 'volume up / down' },
+  { keys: '+  =  ↑', action: 'volume up' },
+  { keys: '-  ↓', action: 'volume down' },
+  { keys: 'shift + ↑↓', action: 'volume up / down 10%' },
   { keys: 's', action: 'toggle shuffle' },
   { keys: 'r', action: 'toggle repeat' },
 ];

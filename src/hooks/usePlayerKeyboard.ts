@@ -92,19 +92,21 @@ export const usePlayerKeyboard = ({
         return;
       }
 
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        const next = Math.min(100, usePlayerStore.getState().volumePercent + 5);
+      const adjustVolume = (delta: number): void => {
+        const next = Math.max(0, Math.min(100, usePlayerStore.getState().volumePercent + delta));
         setVolume(next);
         sendVolumeToSpotify(next);
+      };
+
+      if (event.key === 'ArrowUp' || event.key === '+' || event.key === '=') {
+        event.preventDefault();
+        adjustVolume(event.shiftKey ? 10 : 5);
         return;
       }
 
-      if (event.key === 'ArrowDown') {
+      if (event.key === 'ArrowDown' || event.key === '-' || event.key === '_') {
         event.preventDefault();
-        const next = Math.max(0, usePlayerStore.getState().volumePercent - 5);
-        setVolume(next);
-        sendVolumeToSpotify(next);
+        adjustVolume(event.shiftKey ? -10 : -5);
         return;
       }
 
