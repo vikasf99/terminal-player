@@ -18,6 +18,7 @@ const SCOPES = [
   'user-read-email',
   'user-read-private',
   'playlist-read-private',
+  'playlist-read-collaborative',
 ].join(' ');
 
 const getRequiredEnv = (key: string): string => {
@@ -39,13 +40,13 @@ const toBasicAuth = (): string => {
   return Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 };
 
-export const buildAuthUrl = (): string => {
+export const buildAuthUrl = (options?: { showDialog?: boolean }): string => {
   const params = new URLSearchParams({
     client_id: getRequiredEnv('SPOTIFY_CLIENT_ID'),
     response_type: 'code',
     redirect_uri: getRedirectUri(),
     scope: SCOPES,
-    show_dialog: 'false',
+    show_dialog: options?.showDialog ? 'true' : 'false',
   });
 
   return `${SPOTIFY_AUTH_BASE}?${params.toString()}`;

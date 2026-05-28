@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import type { SpotifyPlaylist } from '@/types/spotify';
 
 type PlaylistPickerProps = {
@@ -7,16 +8,39 @@ type PlaylistPickerProps = {
   selectedId: string | null;
   isLoading: boolean;
   error: string | null;
+  needsReauth?: boolean;
   onSelect: (playlist: SpotifyPlaylist) => void;
 };
 
-export function PlaylistPicker({ playlists, selectedId, isLoading, error, onSelect }: PlaylistPickerProps) {
+export function PlaylistPicker({
+  playlists,
+  selectedId,
+  isLoading,
+  error,
+  needsReauth = false,
+  onSelect,
+}: PlaylistPickerProps) {
   if (isLoading) {
     return <p style={{ color: 'var(--gray-muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>loading playlists...</p>;
   }
 
   if (error) {
-    return <p style={{ color: 'var(--green-mid)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{error}</p>;
+    return (
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+        <p style={{ color: 'var(--magenta)', margin: '0 0 8px' }}>[ERROR] {error}</p>
+        {needsReauth ? (
+          <Button
+            variant="ghost"
+            fullWidth={false}
+            onClick={() => {
+              window.location.href = '/api/auth/start?reauth=1';
+            }}
+          >
+            [RE-AUTHENTICATE]
+          </Button>
+        ) : null}
+      </div>
+    );
   }
 
   if (playlists.length === 0) {

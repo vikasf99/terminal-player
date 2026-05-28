@@ -25,8 +25,16 @@ const colorWithBrightness = (r: number, g: number, b: number, brightness: number
 
 const randomTrailLength = (): number => 8 + Math.floor(Math.random() * 18);
 
+const getLogicalSize = (canvas: HTMLCanvasElement): { width: number; height: number } => {
+  const dpr = window.devicePixelRatio || 1;
+  return {
+    width: canvas.width / dpr,
+    height: canvas.height / dpr,
+  };
+};
+
 const makeColumn = (
-  index: number,
+  x: number,
   fontSize: number,
   speed: number,
   density: number,
@@ -35,7 +43,7 @@ const makeColumn = (
   const speedVariance = speed * 0.2;
   const randomSpeed = speed + (Math.random() * 2 - 1) * speedVariance;
   return {
-    x: index * fontSize,
+    x,
     y: Math.random() * height,
     speed: Math.max(0.2, randomSpeed),
     chars: [],
@@ -61,14 +69,21 @@ export const useMatrixRain = (
       return;
     }
 
-    const dpr = window.devicePixelRatio || 1;
-    const logicalWidth = canvas.width / dpr;
+    const { width: logicalWidth, height: logicalHeight } = getLogicalSize(canvas);
     const columnScale = configRef.current.columnScale ?? 1;
-    const columnCount = Math.max(1, Math.floor((logicalWidth / configRef.current.fontSize) * columnScale));
+    const fullColumns = Math.max(1, Math.floor(logicalWidth / configRef.current.fontSize));
+    const columnCount = Math.max(1, Math.floor(fullColumns * columnScale));
+    const xStep = logicalWidth / columnCount;
     const cols: MatrixColumn[] = [];
     for (let i = 0; i < columnCount; i += 1) {
       cols.push(
-        makeColumn(i, configRef.current.fontSize, configRef.current.speed, configRef.current.density, canvas.height),
+        makeColumn(
+          i * xStep,
+          configRef.current.fontSize,
+          configRef.current.speed,
+          configRef.current.density,
+          logicalHeight,
+        ),
       );
     }
     columnsRef.current = cols;
@@ -86,11 +101,14 @@ export const useMatrixRain = (
     }
 
     const currentConfig = configRef.current;
+    const { width: logicalWidth, height: logicalHeight } = getLogicalSize(canvas);
+    const columnCount = columnsRef.current.length;
+    const xStep = columnCount > 0 ? logicalWidth / columnCount : logicalWidth;
 
     const energy = energyRef.current;
     const fadeAlpha = 0.04 + energy * 0.1;
     ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, logicalWidth, logicalHeight);
     ctx.font = `${currentConfig.fontSize}px var(--font-mono), monospace`;
     ctx.textBaseline = 'top';
 
@@ -114,7 +132,7 @@ export const useMatrixRain = (
       if (!column.active) {
         if (Math.random() < currentConfig.density * (0.03 + energy * 0.08)) {
           column.active = true;
-          column.y = -Math.random() * canvas.height * 0.2;
+          column.y = -Math.random() * logicalHeight * 0.2;
         }
         continue;
       }
@@ -143,9 +161,9 @@ export const useMatrixRain = (
       const speedMul = 1 + energy * 2.2;
       column.y += column.speed * speedMul;
 
-      if (column.y > canvas.height + column.length * currentConfig.fontSize) {
+      if (column.y > logicalHeight + column.length * currentConfig.fontSize) {
         column.y = -Math.random() * currentConfig.fontSize * 8;
-        column.x = i * currentConfig.fontSize + Math.floor((Math.random() - 0.5) * currentConfig.fontSize);
+        column.x = i * xStep + Math.floor((Math.random() - 0.5) * currentConfig.fontSize);
         column.length = randomTrailLength();
         column.speed = Math.max(
           0.2,
@@ -171,8 +189,10 @@ export const useMatrixRain = (
     if (canvas) {
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const { width, height } = getLogicalSize(canvas);
+        ctx.clearRect(0, 0, width, height);
       }
     }
     columnsRef.current = [];

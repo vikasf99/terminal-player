@@ -19,7 +19,10 @@ export async function GET(request: Request): Promise<NextResponse> {
     return NextResponse.json({ tracks });
   } catch (error) {
     if (error instanceof SpotifyApiError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message, needsReauth: error.status === 403 },
+        { status: error.status },
+      );
     }
     return NextResponse.json({ error: 'failed_to_fetch_playlist_tracks' }, { status: 500 });
   }

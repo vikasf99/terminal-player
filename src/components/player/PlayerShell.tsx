@@ -42,7 +42,7 @@ export function PlayerShell() {
 
   const { deviceId, isReady } = useSpotifyPlayer();
   const currentTrack = usePlayerStore((s) => s.currentTrack);
-  const { playlists, isLoading: playlistsLoading, error: playlistsError } = usePlaylists();
+  const { playlists, isLoading: playlistsLoading, error: playlistsError, needsReauth } = usePlaylists();
 
   const [selectedPlaylist, setSelectedPlaylist] = useState<SpotifyPlaylist | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -198,6 +198,7 @@ export function PlayerShell() {
               selectedId={selectedPlaylist?.id ?? null}
               isLoading={playlistsLoading}
               error={playlistsError}
+              needsReauth={needsReauth}
               onSelect={(playlist) => setSelectedPlaylist(playlist)}
             />
             <Divider variant="dotted" width={24} />
@@ -231,6 +232,7 @@ export function PlayerShell() {
               selectedId={selectedPlaylist?.id ?? null}
               isLoading={playlistsLoading}
               error={playlistsError}
+              needsReauth={needsReauth}
               onSelect={(playlist) => setSelectedPlaylist(playlist)}
             />
             <Divider variant="dotted" width={24} />
