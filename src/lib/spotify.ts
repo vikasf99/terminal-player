@@ -85,8 +85,44 @@ export const getAudioFeatures = async (
   return spotifyFetch<SpotifyAudioFeatures>(`/audio-features/${trackId}`, token);
 };
 
+const getUserMarket = async (token: string): Promise<string | undefined> => {
+  try {
+    const profile = await spotifyFetch<{ country?: string }>('/me', token);
+    return profile.country;
+  } catch {
+    return undefined;
+  }
+};
+
+const normalizeTrack = (track: SpotifyTrack | null): SpotifyTrack | null => {
+  if (!track?.id) {
+    return null;
+  }
+  return {
+    ...track,
+    name: track.name ?? 'unknown track',
+    artists: track.artists ?? [],
+    album: track.album ?? { id: '', name: 'unknown' },
+    duration_ms: track.duration_ms ?? 0,
+  };
+};
+
+const collectTracks = (items: Array<{ track: SpotifyTrack | null }>): SpotifyTrack[] => {
+  const tracks: SpotifyTrack[] = [];
+  for (const item of items) {
+    const track = normalizeTrack(item.track);
+    if (track) {
+      tracks.push(track);
+    }
+  }
+  return tracks;
+};
+
 export const getUserPlaylists = async (token: string): Promise<SpotifyPlaylist[]> => {
-  const data = await spotifyFetch<{ items: SpotifyPlaylist[] }>('/me/playlists?limit=50', token);
+  const data = await spotifyFetch<{ items: SpotifyPlaylist[] }>(
+    '/me/playlists?limit=50&fields=items(id,name,description,tracks(total)),next',
+    token,
+  );
   return data.items.map((playlist) => ({
     ...playlist,
     name: playlist.name ?? 'untitled playlist',
@@ -95,35 +131,69 @@ export const getUserPlaylists = async (token: string): Promise<SpotifyPlaylist[]
   }));
 };
 
+const fetchPlaylistTracksPage = async (
+  token: string,
+  playlistId: string,
+  offset: number,
+  limit: number,
+  market?: string,
+): Promise<{ items: Array<{ track: SpotifyTrack | null }>; next: string | null }> => {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+    additional_types: 'track',
+  });
+  if (market) {
+    params.set('market', market);
+  }
+
+  return spotifyFetch<{ items: Array<{ track: SpotifyTrack | null }>; next: string | null }>(
+    `/playlists/${playlistId}/tracks?${params.toString()}`,
+    token,
+  );
+};
+
+const fetchPlaylistTracksFallback = async (
+  token: string,
+  playlistId: string,
+  market?: string,
+): Promise<SpotifyTrack[]> => {
+  const params = new URLSearchParams({
+    fields: 'tracks.items(track(id,name,artists,album,duration_ms))',
+  });
+  if (market) {
+    params.set('market', market);
+  }
+
+  const data = await spotifyFetch<{
+    tracks?: { items: Array<{ track: SpotifyTrack | null }> };
+  }>(`/playlists/${playlistId}?${params.toString()}`, token);
+
+  return collectTracks(data.tracks?.items ?? []);
+};
+
 export const getPlaylistTracks = async (token: string, playlistId: string): Promise<SpotifyTrack[]> => {
+  const market = await getUserMarket(token);
   const tracks: SpotifyTrack[] = [];
   let offset = 0;
   const limit = 100;
 
-  while (true) {
-    const data = await spotifyFetch<{
-      items: Array<{ track: SpotifyTrack | null }>;
-      next: string | null;
-    }>(`/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}&fields=items(track(id,name,artists,album,duration_ms)),next`, token);
+  try {
+    while (true) {
+      const data = await fetchPlaylistTracksPage(token, playlistId, offset, limit, market);
+      tracks.push(...collectTracks(data.items));
 
-    for (const item of data.items) {
-      if (!item.track?.id) {
-        continue;
+      if (!data.next) {
+        break;
       }
-      tracks.push({
-        ...item.track,
-        name: item.track.name ?? 'unknown track',
-        artists: item.track.artists ?? [],
-        album: item.track.album ?? { id: '', name: 'unknown' },
-        duration_ms: item.track.duration_ms ?? 0,
-      });
+      offset += limit;
     }
-
-    if (!data.next) {
-      break;
+    return tracks;
+  } catch (error) {
+    if (!(error instanceof SpotifyApiError) || error.status !== 403) {
+      throw error;
     }
-    offset += limit;
   }
 
-  return tracks;
+  return fetchPlaylistTracksFallback(token, playlistId, market);
 };

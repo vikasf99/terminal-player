@@ -55,7 +55,8 @@ export function PlayerShell() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   const playlistId = selectedPlaylist?.id ?? null;
-  const { tracks, isLoading: tracksLoading, error: tracksError } = usePlaylistTracks(playlistId);
+  const { tracks, isLoading: tracksLoading, error: tracksError, needsReauth: tracksNeedReauth } =
+    usePlaylistTracks(playlistId);
 
   const isBuffering = tracksLoading;
 
@@ -213,6 +214,7 @@ export function PlayerShell() {
               selectedIndex={selectedIndex}
               isLoading={tracksLoading}
               error={tracksError}
+              needsReauth={tracksNeedReauth}
               onSelectIndex={setSelectedIndex}
               onPlayIndex={(index) => {
                 void playAtIndex(index);
@@ -247,6 +249,7 @@ export function PlayerShell() {
               selectedIndex={selectedIndex}
               isLoading={tracksLoading}
               error={tracksError}
+              needsReauth={tracksNeedReauth}
               onSelectIndex={setSelectedIndex}
               onPlayIndex={(index) => {
                 void playAtIndex(index);

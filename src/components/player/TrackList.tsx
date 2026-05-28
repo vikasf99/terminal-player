@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 
 import type { SpotifyTrack } from '@/types/spotify';
+import { Button } from '@/components/ui/Button';
 import { Divider } from '@/components/ui/Divider';
 import { TrackRow } from '@/components/player/TrackRow';
 
@@ -13,6 +14,7 @@ type TrackListProps = {
   selectedIndex: number;
   isLoading?: boolean;
   error?: string | null;
+  needsReauth?: boolean;
   onSelectIndex: (index: number) => void;
   onPlayIndex: (index: number) => void;
 };
@@ -24,6 +26,7 @@ export function TrackList({
   selectedIndex,
   isLoading,
   error,
+  needsReauth = false,
   onSelectIndex,
   onPlayIndex,
 }: TrackListProps) {
@@ -45,7 +48,22 @@ export function TrackList({
       {isLoading ? (
         <p style={{ color: 'var(--gray-muted)', fontSize: 12, margin: '8px 0' }}>loading tracks...</p>
       ) : null}
-      {error ? <p style={{ color: 'var(--green-mid)', fontSize: 12, margin: '8px 0' }}>{error}</p> : null}
+      {error ? (
+        <div style={{ margin: '8px 0' }}>
+          <p style={{ color: 'var(--magenta)', fontSize: 12, margin: '0 0 8px' }}>[ERROR] {error}</p>
+          {needsReauth ? (
+            <Button
+              variant="ghost"
+              fullWidth={false}
+              onClick={() => {
+                window.location.href = '/api/auth/start?reauth=1';
+              }}
+            >
+              [RE-AUTHENTICATE]
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       {!isLoading && !error ? (
         <div
           ref={listRef}
