@@ -1,0 +1,32 @@
+.crt-scanlines {
+  position: relative;
+}
+
+.crt-scanlines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.15) 0,
+    rgba(255, 255, 255, 0.15) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.crt-grain {
+  position: relative;
+}
+
+.crt-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.4) 0.5px, transparent 0.5px);
+  background-size: 3px 3px;
+}

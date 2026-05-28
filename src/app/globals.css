@@ -1,0 +1,21 @@
+@import "../styles/tokens.css";
+@import "../styles/crt.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-base);
+  color: var(--green-mid);
+  font-family: var(--font-mono);
+  font-weight: 400;
+}
+
+* {
+  box-sizing: border-box;
+  border-radius: 0;
+}

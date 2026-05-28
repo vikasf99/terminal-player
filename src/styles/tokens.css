@@ -1,0 +1,44 @@
+:root {
+  /* backgrounds */
+  --bg-base:          #000000;
+  --bg-surface:       #0E1410;
+
+  /* greens — primary voice */
+  --green-bright:     #00FF88;
+  --green-mid:        #8AFF80;
+  --green-dim:        #00FF9F;
+
+  /* neutrals */
+  --gray-muted:       #4A4A4A;
+  --white:            #FFFFFF;
+
+  /* accents — supporting only */
+  --cyan:             #00FFFF;
+  --magenta:          #FF00FF;
+  --yellow:           #FFFF00;
+
+  /* typography */
+  --font-mono:        'JetBrains Mono', 'Fira Code', monospace;
+
+  /* spacing — CLI rhythm */
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:  16px;
+  --space-lg:  32px;
+  --space-xl:  64px;
+
+  /* borders */
+  --border:           1px solid var(--cyan);
+  --border-dim:       1px solid var(--gray-muted);
+  --border-active:    1px solid var(--green-bright);
+  --radius:           0px;
+
+  /* glow — 1-2 focal points per view only */
+  --glow-green:       0 0 8px var(--green-bright);
+  --glow-cyan:        0 0 6px var(--cyan);
+  --glow-matrix-head: 0 0 12px var(--green-bright);
+
+  /* motion — linear only */
+  --t-instant:        all 0.05s linear;
+  --t-fast:           all 0.1s linear;
+}
