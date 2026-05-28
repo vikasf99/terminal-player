@@ -53,6 +53,7 @@ export const useMatrixRain = (
   const columnsRef = useRef<MatrixColumn[]>([]);
   const configRef = useRef<MatrixConfig>(config);
   const isBeatRef = useRef(false);
+  const energyRef = useRef(0);
 
   const initializeColumns = useCallback((): void => {
     const canvas = canvasRef.current;
@@ -60,7 +61,10 @@ export const useMatrixRain = (
       return;
     }
 
-    const columnCount = Math.max(1, Math.floor(canvas.width / configRef.current.fontSize));
+    const dpr = window.devicePixelRatio || 1;
+    const logicalWidth = canvas.width / dpr;
+    const columnScale = configRef.current.columnScale ?? 1;
+    const columnCount = Math.max(1, Math.floor((logicalWidth / configRef.current.fontSize) * columnScale));
     const cols: MatrixColumn[] = [];
     for (let i = 0; i < columnCount; i += 1) {
       cols.push(
@@ -83,21 +87,23 @@ export const useMatrixRain = (
 
     const currentConfig = configRef.current;
 
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    const energy = energyRef.current;
+    const fadeAlpha = 0.04 + energy * 0.1;
+    ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.font = `${currentConfig.fontSize}px var(--font-mono), monospace`;
     ctx.textBaseline = 'top';
 
     const columns = columnsRef.current;
     if (isBeatRef.current && columns.length > 0) {
-      const burstCount = 3 + Math.floor(Math.random() * 3);
+      const burstCount = 6 + Math.floor(energy * 14) + Math.floor(Math.random() * 5);
       for (let i = 0; i < burstCount; i += 1) {
         const idx = Math.floor(Math.random() * columns.length);
         const burst = columns[idx];
         burst.active = true;
-        burst.y = -Math.random() * currentConfig.fontSize * 4;
-        burst.length = randomTrailLength();
-        burst.speed = Math.max(0.2, currentConfig.speed + Math.random() * currentConfig.speed * 0.5);
+        burst.y = -Math.random() * currentConfig.fontSize * (6 + energy * 8);
+        burst.length = randomTrailLength() + Math.floor(energy * 16);
+        burst.speed = Math.max(0.5, currentConfig.speed * (1.5 + energy * 2) + Math.random() * currentConfig.speed);
         burst.chars = [];
       }
       isBeatRef.current = false;
@@ -106,7 +112,7 @@ export const useMatrixRain = (
     for (let i = 0; i < columns.length; i += 1) {
       const column = columns[i];
       if (!column.active) {
-        if (Math.random() < currentConfig.density * 0.02) {
+        if (Math.random() < currentConfig.density * (0.03 + energy * 0.08)) {
           column.active = true;
           column.y = -Math.random() * canvas.height * 0.2;
         }
@@ -121,19 +127,21 @@ export const useMatrixRain = (
 
       const headY = column.y;
 
-      ctx.shadowBlur = 12;
+      const headGlow = 12 + energy * 28;
+      ctx.shadowBlur = headGlow;
       ctx.shadowColor = '#00FF88';
-      ctx.fillStyle = colorWithBrightness(0, 255, 136, currentConfig.brightness, 1);
+      ctx.fillStyle = colorWithBrightness(0, 255, 136, Math.min(1, currentConfig.brightness * (1 + energy * 0.35)), 1);
       ctx.fillText(column.chars[0] ?? randomChar(), column.x, headY);
 
       ctx.shadowBlur = 0;
       for (let j = 1; j < column.chars.length; j += 1) {
-        const alpha = Math.max(0.1, 1 - j / column.length);
+        const alpha = Math.max(0.08, 1 - j / column.length);
         ctx.fillStyle = colorWithBrightness(0, 255, 159, currentConfig.brightness, alpha);
         ctx.fillText(column.chars[j] ?? randomChar(), column.x, headY - j * currentConfig.fontSize);
       }
 
-      column.y += column.speed;
+      const speedMul = 1 + energy * 2.2;
+      column.y += column.speed * speedMul;
 
       if (column.y > canvas.height + column.length * currentConfig.fontSize) {
         column.y = -Math.random() * currentConfig.fontSize * 8;
@@ -159,7 +167,16 @@ export const useMatrixRain = (
       window.cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
-  }, []);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    columnsRef.current = [];
+  }, [canvasRef]);
 
   const start = useCallback((): void => {
     if (isRunningRef.current) {
@@ -185,12 +202,16 @@ export const useMatrixRain = (
   }, [config]);
 
   useEffect(() => {
+    const slowDensityScale =
+      typeof navigator !== 'undefined' && (navigator.hardwareConcurrency ?? 8) < 4 ? 0.5 : 1;
+
     const unsubscribe = usePlayerStore.subscribe((state) => {
+      energyRef.current = state.beatIntensity;
       configRef.current = {
         ...configRef.current,
         speed: state.matrixSpeed,
         brightness: state.matrixBrightness,
-        density: state.matrixDensity,
+        density: state.matrixDensity * slowDensityScale,
       };
       if (state.isBeat) {
         isBeatRef.current = true;

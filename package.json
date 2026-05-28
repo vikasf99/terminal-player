@@ -6,7 +6,8 @@
     "dev": "rm -rf .next node_modules/.cache && next dev --turbo --hostname localhost --port 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "auth:refresh": "curl -sf -X POST \"${NEXT_PUBLIC_BASE_URL:-http://localhost:3000}/api/auth/refresh\" && echo 'token refresh ok' || echo 'token refresh failed — visit /login to re-authenticate'"
   },
   "dependencies": {
     "framer-motion": "^11.18.2",

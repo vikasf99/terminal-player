@@ -17,6 +17,7 @@ const SCOPES = [
   'user-read-currently-playing',
   'user-read-email',
   'user-read-private',
+  'playlist-read-private',
 ].join(' ');
 
 const getRequiredEnv = (key: string): string => {

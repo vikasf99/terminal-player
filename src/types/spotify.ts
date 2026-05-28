@@ -39,3 +39,7 @@ export interface SpotifyPlaylist {
   description: string;
   tracks: { total: number };
 }
+
+export interface SpotifyPlaylistTrackItem {
+  track: SpotifyTrack | null;
+}

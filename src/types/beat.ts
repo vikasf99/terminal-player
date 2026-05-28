@@ -7,4 +7,5 @@ export interface BeatData {
   intensity: number;
   bpm: number;
   isBeat: boolean;
+  bassEnergy: number;
 }

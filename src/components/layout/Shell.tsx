@@ -23,18 +23,22 @@ export function Shell({ children }: ShellProps) {
         return response;
       }
 
-      // Token bootstrap checks can briefly 401 right after oauth redirect.
-      // Let caller handle retries instead of forcing immediate login bounce.
-      if (requestUrl.includes('/api/spotify/token')) {
+      if (requestUrl.includes('/api/spotify/token') || requestUrl.includes('/api/auth/')) {
         return response;
       }
 
       const refresh = await originalFetch('/api/auth/refresh', { method: 'POST' });
       if (!refresh.ok) {
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.assign('/login?reason=session_expired');
+        }
         return response;
       }
 
       response = await originalFetch(input, init);
+      if (response.status === 401 && !window.location.pathname.startsWith('/login')) {
+        window.location.assign('/login?reason=session_expired');
+      }
       return response;
     };
 

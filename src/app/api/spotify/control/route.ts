@@ -2,10 +2,23 @@ import { NextResponse } from 'next/server';
 
 import { getAccessToken } from '@/lib/spotify';
 
-type ControlAction = 'play' | 'pause' | 'next' | 'previous' | 'shuffle' | 'repeat' | 'volume';
+type ControlAction =
+  | 'play'
+  | 'pause'
+  | 'next'
+  | 'previous'
+  | 'shuffle'
+  | 'repeat'
+  | 'volume'
+  | 'seek'
+  | 'play_track';
 type ControlBody = {
   action?: ControlAction;
   value?: string | number | boolean;
+  uris?: string[];
+  contextUri?: string;
+  deviceId?: string;
+  offset?: number;
 };
 
 const endpointFor = (action: ControlAction, value?: string | number | boolean): { url: string; method: string } => {
@@ -30,6 +43,11 @@ const endpointFor = (action: ControlAction, value?: string | number | boolean): 
         )}`,
         method: 'PUT',
       };
+    case 'seek':
+      return {
+        url: `https://api.spotify.com/v1/me/player/seek?position_ms=${Math.max(0, Math.floor(Number(value) || 0))}`,
+        method: 'PUT',
+      };
     default:
       return { url: '', method: 'POST' };
   }
@@ -44,6 +62,35 @@ export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as ControlBody;
   if (!body.action) {
     return NextResponse.json({ ok: false, error: 'missing_action' }, { status: 400 });
+  }
+
+  if (body.action === 'play_track') {
+    const deviceQuery = body.deviceId ? `?device_id=${encodeURIComponent(body.deviceId)}` : '';
+    const playBody: Record<string, unknown> = {};
+    if (body.uris?.length) {
+      playBody.uris = body.uris;
+    }
+    if (body.contextUri) {
+      playBody.context_uri = body.contextUri;
+    }
+    if (body.offset !== undefined) {
+      playBody.offset = { position: body.offset };
+    }
+
+    const response = await fetch(`https://api.spotify.com/v1/me/player/play${deviceQuery}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(playBody),
+      cache: 'no-store',
+    });
+
+    if (!response.ok && response.status !== 204) {
+      return NextResponse.json({ ok: false, error: await response.text() }, { status: response.status });
+    }
+    return NextResponse.json({ ok: true });
   }
 
   const endpoint = endpointFor(body.action, body.value);

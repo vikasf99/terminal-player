@@ -57,7 +57,7 @@ export class BeatDetector {
     return bpm;
   }
 
-  detectBeat(threshold = 150): BeatData {
+  detectBeat(threshold = 125): BeatData {
     const data = this.getFrequencyData();
     const bassBins = data.slice(0, 11);
     const bassEnergy = bassBins.reduce((sum, value) => sum + value, 0) / bassBins.length;
@@ -68,10 +68,10 @@ export class BeatDetector {
     if (bassEnergy > threshold && cooldownElapsed) {
       const bpm = this.estimateBpm(nowMs);
       this.lastBeatAtMs = nowMs;
-      return { isBeat: true, intensity, bpm };
+      return { isBeat: true, intensity, bpm, bassEnergy: intensity };
     }
 
-    return { isBeat: false, intensity, bpm: this.lastBpm };
+    return { isBeat: false, intensity, bpm: this.lastBpm, bassEnergy: intensity };
   }
 
   destroy(): void {

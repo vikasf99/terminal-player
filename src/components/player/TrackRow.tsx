@@ -6,6 +6,7 @@ type TrackRowProps = {
   index: number;
   track: SpotifyTrack;
   isActive: boolean;
+  isSelected?: boolean;
   onClick?: () => void;
 };
 
@@ -16,7 +17,7 @@ const formatMs = (ms: number): string => {
   return `${min}:${String(sec).padStart(2, '0')}`;
 };
 
-export function TrackRow({ index, track, isActive, onClick }: TrackRowProps) {
+export function TrackRow({ index, track, isActive, isSelected = false, onClick }: TrackRowProps) {
   return (
     <button
       type="button"
@@ -25,8 +26,9 @@ export function TrackRow({ index, track, isActive, onClick }: TrackRowProps) {
         width: '100%',
         border: 'none',
         borderBottom: '1px solid var(--gray-muted)',
-        borderLeft: isActive ? '2px solid var(--green-bright)' : '2px solid transparent',
-        background: 'transparent',
+        borderLeft:
+          isActive || isSelected ? '2px solid var(--green-bright)' : '2px solid transparent',
+        background: isSelected && !isActive ? 'rgba(0, 255, 65, 0.04)' : 'transparent',
         textAlign: 'left',
         padding: '8px 8px 8px 10px',
         fontFamily: 'var(--font-mono)',

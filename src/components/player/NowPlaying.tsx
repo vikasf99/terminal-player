@@ -6,15 +6,41 @@ import { useTypewriter } from '@/hooks/useTypewriter';
 import { usePlayerStore } from '@/stores/playerStore';
 import { Divider } from '@/components/ui/Divider';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { IdlePlayback } from '@/components/player/IdlePlayback';
+import { BufferingState } from '@/components/player/BufferingState';
 
-export function NowPlaying() {
+type NowPlayingProps = {
+  isBuffering?: boolean;
+};
+
+export function NowPlaying({ isBuffering = false }: NowPlayingProps) {
   const track = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
 
-  const trackNameSource = useMemo(() => track?.name ?? 'no track loaded', [track?.id, track?.name]);
-  const trackName = useTypewriter(trackNameSource, 20);
+  const trackNameSource = useMemo(() => track?.name ?? '', [track?.id, track?.name]);
+  const trackName = useTypewriter(trackNameSource || ' ', 20);
   const artist = track?.artists?.[0]?.name ?? 'unknown';
   const album = track?.album?.name ?? 'unknown';
+
+  if (isBuffering) {
+    return (
+      <section style={{ fontFamily: 'var(--font-mono)' }}>
+        <Divider variant="solid" />
+        <BufferingState />
+        <Divider variant="solid" />
+      </section>
+    );
+  }
+
+  if (!track) {
+    return (
+      <section style={{ fontFamily: 'var(--font-mono)' }}>
+        <Divider variant="solid" />
+        <IdlePlayback />
+        <Divider variant="solid" />
+      </section>
+    );
+  }
 
   return (
     <section style={{ fontFamily: 'var(--font-mono)' }}>

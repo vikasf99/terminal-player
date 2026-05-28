@@ -1,15 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-
 import { Button } from '@/components/ui/Button';
 import { usePlayerStore } from '@/stores/playerStore';
 
 export function Controls() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const setPlayback = usePlayerStore((s) => s.setPlayback);
-  const [shuffle, setShuffle] = useState(false);
-  const [repeat, setRepeat] = useState(false);
+  const shuffle = usePlayerStore((s) => s.shuffle);
+  const repeat = usePlayerStore((s) => s.repeat);
+  const setShuffle = usePlayerStore((s) => s.setShuffle);
+  const setRepeat = usePlayerStore((s) => s.setRepeat);
 
   const send = async (action: string, value?: string | number | boolean): Promise<void> => {
     await fetch('/api/spotify/control', {
@@ -32,7 +32,9 @@ export function Controls() {
           void send(isPlaying ? 'pause' : 'play');
         }}
       >
-        <span style={{ fontSize: 16, textShadow: isPlaying ? 'var(--glow-green)' : 'none' }}>{isPlaying ? '■ pause' : '▶ play'}</span>
+        <span style={{ fontSize: 16, textShadow: isPlaying ? 'var(--glow-green)' : 'none' }}>
+          {isPlaying ? '■ pause' : '▶ play'}
+        </span>
       </Button>
       <Button variant="ghost" fullWidth={false} onClick={() => void send('next')}>
         ⏭ next

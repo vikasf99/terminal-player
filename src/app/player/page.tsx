@@ -6,13 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useBeatDetection } from '@/components/matrix/useBeatDetection';
 import { PlayerShell } from '@/components/player/PlayerShell';
 import { Shell } from '@/components/layout/Shell';
-import { useSpotifyPlayer } from '@/hooks/useSpotifyPlayer';
-
 export default function PlayerPage() {
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  useSpotifyPlayer();
   useBeatDetection(audioRef);
 
   useEffect(() => {

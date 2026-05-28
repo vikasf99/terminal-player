@@ -14,11 +14,6 @@ export async function GET(request: Request): Promise<NextResponse> {
     const token = await exchangeCode(code);
     const response = NextResponse.redirect(new URL('/player', requestUrl.origin), { status: 302 });
     setAuthCookies(response, token);
-    console.log('[auth/callback] token set', {
-      hasAccessToken: Boolean(token.access_token),
-      hasRefreshToken: Boolean(token.refresh_token),
-      expiresIn: token.expires_in,
-    });
     return response;
   } catch {
     return NextResponse.redirect(new URL('/login?error=auth_failed', requestUrl.origin), { status: 302 });

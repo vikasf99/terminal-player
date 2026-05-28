@@ -17,6 +17,7 @@ export const useBeatDetection = (audioElement: RefObject<HTMLAudioElement | null
   const detectorRef = useRef<BeatDetector | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const rafRef = useRef<number | null>(null);
+  const pausedRef = useRef(false);
   const setBeatData = usePlayerStore((state) => state.setBeatData);
 
   useEffect(() => {
@@ -26,6 +27,26 @@ export const useBeatDetection = (audioElement: RefObject<HTMLAudioElement | null
     }
 
     let localContext: AudioContext | null = null;
+
+    const stopLoop = (): void => {
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+
+    const startLoop = (): void => {
+      stopLoop();
+      const loop = (): void => {
+        if (!detectorRef.current || pausedRef.current) {
+          return;
+        }
+        const data = detectorRef.current.detectBeat();
+        setBeatData(data);
+        rafRef.current = window.requestAnimationFrame(loop);
+      };
+      rafRef.current = window.requestAnimationFrame(loop);
+    };
 
     const start = async (): Promise<void> => {
       if (detectorRef.current || !audioElement.current) {
@@ -39,17 +60,7 @@ export const useBeatDetection = (audioElement: RefObject<HTMLAudioElement | null
       sourceRef.current = localContext.createMediaElementSource(audioElement.current);
       detectorRef.current = new BeatDetector(localContext, sourceRef.current);
       setIsActive(true);
-
-      const loop = (): void => {
-        if (!detectorRef.current) {
-          return;
-        }
-        const data = detectorRef.current.detectBeat();
-        setBeatData(data);
-        rafRef.current = window.requestAnimationFrame(loop);
-      };
-
-      rafRef.current = window.requestAnimationFrame(loop);
+      startLoop();
     };
 
     const onFirstInteraction = (): void => {
@@ -58,15 +69,26 @@ export const useBeatDetection = (audioElement: RefObject<HTMLAudioElement | null
       window.removeEventListener('keydown', onFirstInteraction);
     };
 
+    const onVisibility = (): void => {
+      pausedRef.current = document.hidden;
+      if (document.hidden) {
+        stopLoop();
+        return;
+      }
+      if (detectorRef.current) {
+        startLoop();
+      }
+    };
+
     window.addEventListener('pointerdown', onFirstInteraction, { once: true });
     window.addEventListener('keydown', onFirstInteraction, { once: true });
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       window.removeEventListener('pointerdown', onFirstInteraction);
       window.removeEventListener('keydown', onFirstInteraction);
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-      }
+      document.removeEventListener('visibilitychange', onVisibility);
+      stopLoop();
       detectorRef.current?.destroy();
       detectorRef.current = null;
       sourceRef.current = null;

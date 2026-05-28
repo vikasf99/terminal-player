@@ -7,14 +7,17 @@ type TerminalWindowProps = {
 };
 
 export function TerminalWindow({ title, children, className }: TerminalWindowProps) {
+  const isMobileDock = className?.includes('terminal-mobile');
+
   return (
     <section
       className={className}
       style={{
         border: '1px solid var(--gray-muted)',
         background: 'var(--bg-surface)',
-        borderRadius: '6px',
+        borderRadius: isMobileDock ? '6px 6px 0 0' : '6px',
         overflow: 'hidden',
+        boxShadow: 'none',
       }}
     >
       <header

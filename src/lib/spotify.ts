@@ -89,3 +89,29 @@ export const getUserPlaylists = async (token: string): Promise<SpotifyPlaylist[]
   const data = await spotifyFetch<{ items: SpotifyPlaylist[] }>('/me/playlists?limit=50', token);
   return data.items;
 };
+
+export const getPlaylistTracks = async (token: string, playlistId: string): Promise<SpotifyTrack[]> => {
+  const tracks: SpotifyTrack[] = [];
+  let offset = 0;
+  const limit = 100;
+
+  while (true) {
+    const data = await spotifyFetch<{
+      items: Array<{ track: SpotifyTrack | null }>;
+      next: string | null;
+    }>(`/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}&fields=items(track(id,name,artists,album,duration_ms)),next`, token);
+
+    for (const item of data.items) {
+      if (item.track?.id) {
+        tracks.push(item.track);
+      }
+    }
+
+    if (!data.next) {
+      break;
+    }
+    offset += limit;
+  }
+
+  return tracks;
+};

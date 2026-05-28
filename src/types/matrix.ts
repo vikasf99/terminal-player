@@ -13,4 +13,5 @@ export interface MatrixConfig {
   density: number;
   charSet: string;
   fontSize: number;
+  columnScale?: number;
 }
