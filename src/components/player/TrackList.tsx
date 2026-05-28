@@ -15,6 +15,7 @@ type TrackListProps = {
   isLoading?: boolean;
   error?: string | null;
   needsReauth?: boolean;
+  playlistTotal?: number;
   onSelectIndex: (index: number) => void;
   onPlayIndex: (index: number) => void;
 };
@@ -27,6 +28,7 @@ export function TrackList({
   isLoading,
   error,
   needsReauth = false,
+  playlistTotal = 0,
   onSelectIndex,
   onPlayIndex,
 }: TrackListProps) {
@@ -75,7 +77,11 @@ export function TrackList({
           }}
         >
           {tracks.length === 0 ? (
-            <p style={{ color: 'var(--gray-muted)', fontSize: 12, margin: '8px 0' }}>no tracks</p>
+            <p style={{ color: 'var(--gray-muted)', fontSize: 12, margin: '8px 0' }}>
+              {playlistTotal > 0
+                ? `spotify reports ${playlistTotal} tracks but none are playable here`
+                : 'no tracks in this playlist'}
+            </p>
           ) : (
             tracks.map((track, index) => (
               <div key={track.id ?? `${index}-${track.name}`} data-track-index={index}>

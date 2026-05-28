@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { getAccessToken, getPlaylistTracks, SpotifyApiError } from '@/lib/spotify';
+import { getAccessToken, getPlaylistTrackCount, getPlaylistTracks, SpotifyApiError } from '@/lib/spotify';
 
 export async function GET(request: Request): Promise<NextResponse> {
   const token = getAccessToken();
@@ -15,8 +15,11 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   try {
-    const tracks = await getPlaylistTracks(token, playlistId);
-    return NextResponse.json({ tracks });
+    const [tracks, playlistTotal] = await Promise.all([
+      getPlaylistTracks(token, playlistId),
+      getPlaylistTrackCount(token, playlistId),
+    ]);
+    return NextResponse.json({ tracks, playlistTotal });
   } catch (error) {
     if (error instanceof SpotifyApiError) {
       return NextResponse.json(

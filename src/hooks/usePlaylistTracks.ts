@@ -9,6 +9,7 @@ type PlaylistTracksState = {
   isLoading: boolean;
   error: string | null;
   needsReauth: boolean;
+  playlistTotal: number;
 };
 
 export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksState => {
@@ -16,6 +17,7 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsReauth, setNeedsReauth] = useState(false);
+  const [playlistTotal, setPlaylistTotal] = useState(0);
 
   useEffect(() => {
     if (!playlistId) {
@@ -23,6 +25,7 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
       setIsLoading(false);
       setError(null);
       setNeedsReauth(false);
+      setPlaylistTotal(0);
       return;
     }
 
@@ -30,6 +33,7 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
     setIsLoading(true);
     setError(null);
     setNeedsReauth(false);
+    setPlaylistTotal(0);
 
     const load = async (retried = false): Promise<void> => {
       try {
@@ -37,7 +41,8 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
           cache: 'no-store',
         });
 
-        let data: { tracks?: SpotifyTrack[]; error?: string; needsReauth?: boolean } = {};
+        let data: { tracks?: SpotifyTrack[]; playlistTotal?: number; error?: string; needsReauth?: boolean } =
+          {};
         try {
           data = (await response.json()) as typeof data;
         } catch {
@@ -65,9 +70,17 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
         }
 
         if (!cancelled) {
-          setTracks(data.tracks ?? []);
-          setError(null);
-          setNeedsReauth(false);
+          const loaded = data.tracks ?? [];
+          const total = data.playlistTotal ?? 0;
+          setTracks(loaded);
+          setPlaylistTotal(total);
+          if (loaded.length === 0 && total > 0) {
+            setError('tracks could not be loaded for your region — try re-authenticating');
+            setNeedsReauth(true);
+          } else {
+            setError(null);
+            setNeedsReauth(false);
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -87,5 +100,5 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
     };
   }, [playlistId]);
 
-  return { tracks, isLoading, error, needsReauth };
+  return { tracks, isLoading, error, needsReauth, playlistTotal };
 };

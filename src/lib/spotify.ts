@@ -113,23 +113,64 @@ const getUserMarket = async (token: string): Promise<string | undefined> => {
   }
 };
 
-const normalizeTrack = (track: SpotifyTrack | null): SpotifyTrack | null => {
-  if (!track?.id) {
+type PlaylistItemEntry = {
+  track?: (SpotifyTrack & { linked_from?: { id?: string } }) | null;
+  item?: (SpotifyTrack & { type?: string }) | null;
+  is_local?: boolean;
+};
+
+const resolveTrackId = (raw: PlaylistItemEntry['track'] | PlaylistItemEntry['item']): string | null => {
+  if (!raw) {
+    return null;
+  }
+  if (raw.id) {
+    return raw.id;
+  }
+  const linked = (raw as { linked_from?: { id?: string } }).linked_from?.id;
+  return linked ?? null;
+};
+
+const normalizeTrack = (raw: SpotifyTrack, fallbackId?: string): SpotifyTrack | null => {
+  const id = raw.id ?? fallbackId ?? null;
+  if (!id) {
     return null;
   }
   return {
-    ...track,
-    name: track.name ?? 'unknown track',
-    artists: track.artists ?? [],
-    album: track.album ?? { id: '', name: 'unknown' },
-    duration_ms: track.duration_ms ?? 0,
+    id,
+    name: raw.name ?? 'unknown track',
+    artists: raw.artists ?? [],
+    album: raw.album ?? { id: '', name: 'unknown' },
+    duration_ms: raw.duration_ms ?? 0,
   };
 };
 
-const collectTracks = (items: Array<{ track: SpotifyTrack | null }>): SpotifyTrack[] => {
+const extractTrackFromEntry = (entry: PlaylistItemEntry): SpotifyTrack | null => {
+  const fromTrack = entry.track;
+  if (fromTrack) {
+    const id = resolveTrackId(fromTrack);
+    if (id) {
+      return normalizeTrack({ ...fromTrack, id }, id);
+    }
+    if (entry.is_local && fromTrack.name) {
+      return normalizeTrack({ ...fromTrack, id: `local-${fromTrack.name}` });
+    }
+  }
+
+  const fromItem = entry.item;
+  if (fromItem && (fromItem.type === 'track' || fromItem.type === undefined)) {
+    const id = resolveTrackId(fromItem);
+    if (id) {
+      return normalizeTrack({ ...fromItem, id }, id);
+    }
+  }
+
+  return null;
+};
+
+const collectTracks = (items: PlaylistItemEntry[]): SpotifyTrack[] => {
   const tracks: SpotifyTrack[] = [];
-  for (const item of items) {
-    const track = normalizeTrack(item.track);
+  for (const entry of items) {
+    const track = extractTrackFromEntry(entry);
     if (track) {
       tracks.push(track);
     }
@@ -138,10 +179,7 @@ const collectTracks = (items: Array<{ track: SpotifyTrack | null }>): SpotifyTra
 };
 
 export const getUserPlaylists = async (token: string): Promise<SpotifyPlaylist[]> => {
-  const data = await spotifyFetch<{ items: SpotifyPlaylist[] }>(
-    '/me/playlists?limit=50&fields=items(id,name,description,tracks(total)),next',
-    token,
-  );
+  const data = await spotifyFetch<{ items: SpotifyPlaylist[] }>('/me/playlists?limit=50', token);
   return data.items.map((playlist) => ({
     ...playlist,
     name: playlist.name ?? 'untitled playlist',
@@ -156,20 +194,42 @@ const fetchPlaylistTracksPage = async (
   offset: number,
   limit: number,
   market?: string,
-): Promise<{ items: Array<{ track: SpotifyTrack | null }>; next: string | null }> => {
+): Promise<{ items: PlaylistItemEntry[]; next: string | null }> => {
   const params = new URLSearchParams({
     limit: String(limit),
     offset: String(offset),
-    additional_types: 'track',
+    additional_types: 'track,episode',
   });
   if (market) {
     params.set('market', market);
   }
 
-  return spotifyFetch<{ items: Array<{ track: SpotifyTrack | null }>; next: string | null }>(
+  return spotifyFetch<{ items: PlaylistItemEntry[]; next: string | null }>(
     `/playlists/${playlistId}/tracks?${params.toString()}`,
     token,
   );
+};
+
+const paginatePlaylistTracks = async (
+  token: string,
+  playlistId: string,
+  market?: string,
+): Promise<SpotifyTrack[]> => {
+  const tracks: SpotifyTrack[] = [];
+  let offset = 0;
+  const limit = 100;
+
+  while (true) {
+    const data = await fetchPlaylistTracksPage(token, playlistId, offset, limit, market);
+    tracks.push(...collectTracks(data.items));
+
+    if (!data.next) {
+      break;
+    }
+    offset += limit;
+  }
+
+  return tracks;
 };
 
 const fetchPlaylistTracksFallback = async (
@@ -177,42 +237,61 @@ const fetchPlaylistTracksFallback = async (
   playlistId: string,
   market?: string,
 ): Promise<SpotifyTrack[]> => {
-  const params = new URLSearchParams({
-    fields: 'tracks.items(track(id,name,artists,album,duration_ms))',
-  });
+  const params = new URLSearchParams();
   if (market) {
     params.set('market', market);
   }
 
+  const query = params.toString();
   const data = await spotifyFetch<{
-    tracks?: { items: Array<{ track: SpotifyTrack | null }> };
-  }>(`/playlists/${playlistId}?${params.toString()}`, token);
+    tracks?: { items: PlaylistItemEntry[] };
+  }>(`/playlists/${playlistId}${query ? `?${query}` : ''}`, token);
 
   return collectTracks(data.tracks?.items ?? []);
 };
 
+export const getPlaylistTrackCount = async (token: string, playlistId: string): Promise<number> => {
+  try {
+    const data = await spotifyFetch<{ tracks?: { total?: number } }>(
+      `/playlists/${playlistId}?fields=tracks(total)`,
+      token,
+    );
+    return data.tracks?.total ?? 0;
+  } catch {
+    return 0;
+  }
+};
+
 export const getPlaylistTracks = async (token: string, playlistId: string): Promise<SpotifyTrack[]> => {
   const market = await getUserMarket(token);
-  const tracks: SpotifyTrack[] = [];
-  let offset = 0;
-  const limit = 100;
+  const markets = market ? [undefined, market] : [undefined];
 
-  try {
-    while (true) {
-      const data = await fetchPlaylistTracksPage(token, playlistId, offset, limit, market);
-      tracks.push(...collectTracks(data.items));
-
-      if (!data.next) {
-        break;
+  for (const attemptMarket of markets) {
+    try {
+      const tracks = await paginatePlaylistTracks(token, playlistId, attemptMarket);
+      if (tracks.length > 0) {
+        return tracks;
       }
-      offset += limit;
+    } catch (error) {
+      if (!(error instanceof SpotifyApiError) || error.status !== 403) {
+        throw error;
+      }
     }
-    return tracks;
-  } catch (error) {
-    if (!(error instanceof SpotifyApiError) || error.status !== 403) {
+  }
+
+  for (const attemptMarket of markets) {
+    try {
+      const tracks = await fetchPlaylistTracksFallback(token, playlistId, attemptMarket);
+      if (tracks.length > 0) {
+        return tracks;
+      }
+    } catch (error) {
+      if (error instanceof SpotifyApiError && error.status === 403) {
+        continue;
+      }
       throw error;
     }
   }
 
-  return fetchPlaylistTracksFallback(token, playlistId, market);
+  return [];
 };
