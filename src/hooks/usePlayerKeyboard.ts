@@ -23,9 +23,14 @@ const sendControl = async (action: string, value?: string | number | boolean): P
 type UsePlayerKeyboardOptions = {
   enabled?: boolean;
   onToggleDebug?: () => void;
+  onToggleShortcuts?: () => void;
 };
 
-export const usePlayerKeyboard = ({ enabled = true, onToggleDebug }: UsePlayerKeyboardOptions = {}): void => {
+export const usePlayerKeyboard = ({
+  enabled = true,
+  onToggleDebug,
+  onToggleShortcuts,
+}: UsePlayerKeyboardOptions = {}): void => {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const setPlayback = usePlayerStore((s) => s.setPlayback);
   const setVolume = usePlayerStore((s) => s.setVolume);
@@ -40,6 +45,15 @@ export const usePlayerKeyboard = ({ enabled = true, onToggleDebug }: UsePlayerKe
     }
 
     const onKeyDown = (event: KeyboardEvent): void => {
+      const isShortcutsChord =
+        event.key === '/' && !event.altKey && (event.metaKey || event.ctrlKey);
+
+      if (isShortcutsChord) {
+        event.preventDefault();
+        onToggleShortcuts?.();
+        return;
+      }
+
       if (isEditableTarget(event.target)) {
         return;
       }
@@ -115,6 +129,7 @@ export const usePlayerKeyboard = ({ enabled = true, onToggleDebug }: UsePlayerKe
     enabled,
     isPlaying,
     onToggleDebug,
+    onToggleShortcuts,
     repeat,
     setPlayback,
     setRepeat,

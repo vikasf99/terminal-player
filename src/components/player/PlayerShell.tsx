@@ -10,7 +10,10 @@ import { Controls } from '@/components/player/Controls';
 import { VolumeControl } from '@/components/player/VolumeControl';
 import { TrackList } from '@/components/player/TrackList';
 import { PlaylistPicker } from '@/components/player/PlaylistPicker';
-import { KeyboardShortcuts } from '@/components/player/KeyboardShortcuts';
+import {
+  KeyboardShortcutsHint,
+  KeyboardShortcutsPanel,
+} from '@/components/player/KeyboardShortcuts';
 import { DebugOverlay } from '@/components/player/DebugOverlay';
 import { Panel } from '@/components/ui/Panel';
 import { Button } from '@/components/ui/Button';
@@ -45,6 +48,7 @@ export function PlayerShell() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [queueOpen, setQueueOpen] = useState(false);
   const [debugOpen, setDebugOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   const playlistId = selectedPlaylist?.id ?? null;
   const { tracks, isLoading: tracksLoading, error: tracksError } = usePlaylistTracks(playlistId);
@@ -53,6 +57,7 @@ export function PlayerShell() {
 
   usePlayerKeyboard({
     onToggleDebug: () => setDebugOpen((v) => !v),
+    onToggleShortcuts: () => setShortcutsOpen((v) => !v),
   });
 
   useEffect(() => {
@@ -163,6 +168,7 @@ export function PlayerShell() {
     <main style={{ minHeight: '100vh', position: 'relative' }}>
       <MatrixCanvas />
       <DebugOverlay visible={debugOpen} />
+      <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       <div style={playerPanelStyle}>
         <TerminalWindow title="terminal-playlist ~ player" className={isMobile ? 'terminal-mobile' : undefined}>
@@ -177,7 +183,7 @@ export function PlayerShell() {
           <ProgressBar />
           <Controls />
           <VolumeControl />
-          <KeyboardShortcuts />
+          <KeyboardShortcutsHint onOpen={() => setShortcutsOpen(true)} />
         </TerminalWindow>
       </div>
 
