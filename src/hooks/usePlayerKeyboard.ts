@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { sendVolumeToSpotify } from '@/lib/volumeApi';
 import { usePlayerStore } from '@/stores/playerStore';
 
 const isEditableTarget = (target: EventTarget | null): boolean => {
@@ -93,17 +94,17 @@ export const usePlayerKeyboard = ({
 
       if (event.key === 'ArrowUp') {
         event.preventDefault();
-        const next = Math.min(100, usePlayerStore.getState().volumePercent + 10);
+        const next = Math.min(100, usePlayerStore.getState().volumePercent + 5);
         setVolume(next);
-        void sendControl('volume', next);
+        sendVolumeToSpotify(next);
         return;
       }
 
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        const next = Math.max(0, usePlayerStore.getState().volumePercent - 10);
+        const next = Math.max(0, usePlayerStore.getState().volumePercent - 5);
         setVolume(next);
-        void sendControl('volume', next);
+        sendVolumeToSpotify(next);
         return;
       }
 

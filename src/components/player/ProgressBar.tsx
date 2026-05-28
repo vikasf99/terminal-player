@@ -22,8 +22,8 @@ export function ProgressBar() {
       return;
     }
     const timer = window.setInterval(() => {
-      setPlayback(true, Math.min(durationMs, usePlayerStore.getState().progressMs + 1000));
-    }, 1000);
+      setPlayback(true, Math.min(durationMs, usePlayerStore.getState().progressMs + 250));
+    }, 250);
     return () => window.clearInterval(timer);
   }, [durationMs, isPlaying, setPlayback]);
 

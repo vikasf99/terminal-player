@@ -113,15 +113,15 @@ export const useMatrixRain = (
     ctx.textBaseline = 'top';
 
     const columns = columnsRef.current;
-    if (isBeatRef.current && columns.length > 0) {
-      const burstCount = 6 + Math.floor(energy * 14) + Math.floor(Math.random() * 5);
+    if (isBeatRef.current && columns.length > 0 && energy > 0.08) {
+      const burstCount = 2 + Math.floor(energy * 6);
       for (let i = 0; i < burstCount; i += 1) {
         const idx = Math.floor(Math.random() * columns.length);
         const burst = columns[idx];
         burst.active = true;
-        burst.y = -Math.random() * currentConfig.fontSize * (6 + energy * 8);
-        burst.length = randomTrailLength() + Math.floor(energy * 16);
-        burst.speed = Math.max(0.5, currentConfig.speed * (1.5 + energy * 2) + Math.random() * currentConfig.speed);
+        burst.y = -Math.random() * currentConfig.fontSize * 4;
+        burst.length = randomTrailLength() + Math.floor(energy * 10);
+        burst.speed = Math.max(0.4, currentConfig.speed * (1.2 + energy));
         burst.chars = [];
       }
       isBeatRef.current = false;
@@ -130,7 +130,7 @@ export const useMatrixRain = (
     for (let i = 0; i < columns.length; i += 1) {
       const column = columns[i];
       if (!column.active) {
-        if (Math.random() < currentConfig.density * (0.03 + energy * 0.08)) {
+        if (Math.random() < currentConfig.density * (0.02 + energy * 0.04)) {
           column.active = true;
           column.y = -Math.random() * logicalHeight * 0.2;
         }
@@ -158,7 +158,7 @@ export const useMatrixRain = (
         ctx.fillText(column.chars[j] ?? randomChar(), column.x, headY - j * currentConfig.fontSize);
       }
 
-      const speedMul = 1 + energy * 2.2;
+      const speedMul = 1 + energy * 1.2;
       column.y += column.speed * speedMul;
 
       if (column.y > logicalHeight + column.length * currentConfig.fontSize) {
@@ -227,11 +227,12 @@ export const useMatrixRain = (
 
     const unsubscribe = usePlayerStore.subscribe((state) => {
       energyRef.current = state.beatIntensity;
-      const densityFloor = 0.28;
+      const vol = state.volumePercent / 100;
+      const densityFloor = (0.06 + vol * 0.22) * slowDensityScale;
       configRef.current = {
         ...configRef.current,
-        speed: Math.max(1, state.matrixSpeed),
-        brightness: Math.max(0.45, state.matrixBrightness),
+        speed: Math.max(0.5, state.matrixSpeed),
+        brightness: Math.max(0, state.matrixBrightness),
         density: Math.max(densityFloor, state.matrixDensity * slowDensityScale),
       };
       if (state.isBeat) {

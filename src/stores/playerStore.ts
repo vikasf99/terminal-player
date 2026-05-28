@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { computeMatrixParams } from '@/lib/matrixParams';
 import type { BeatData } from '@/types/beat';
 import type { SpotifyTrack } from '@/types/spotify';
 
@@ -7,6 +8,7 @@ type PlayerState = {
   isPlaying: boolean;
   currentTrack: SpotifyTrack | null;
   progressMs: number;
+  progressSyncedAt: number;
   volumePercent: number;
   beatIntensity: number;
   bassEnergy: number;
@@ -17,6 +19,7 @@ type PlayerState = {
   matrixSpeed: number;
   matrixBrightness: number;
   matrixDensity: number;
+  getInterpolatedProgressMs: () => number;
   setTrack: (track: SpotifyTrack | null) => void;
   setPlayback: (isPlaying: boolean, progressMs: number) => void;
   setBeatData: (data: BeatData) => void;
@@ -31,6 +34,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isPlaying: false,
   currentTrack: null,
   progressMs: 0,
+  progressSyncedAt: Date.now(),
   volumePercent: 100,
   beatIntensity: 0,
   bassEnergy: 0,
@@ -42,36 +46,47 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   matrixBrightness: 0.5,
   matrixDensity: 0.3,
 
+  getInterpolatedProgressMs: () => {
+    const state = get();
+    if (!state.isPlaying) {
+      return state.progressMs;
+    }
+    const duration = state.currentTrack?.duration_ms ?? Number.POSITIVE_INFINITY;
+    const elapsed = Date.now() - state.progressSyncedAt;
+    return Math.min(duration, state.progressMs + elapsed);
+  },
+
   setTrack: (track) => {
     set({ currentTrack: track });
   },
 
   setPlayback: (isPlaying, progressMs) => {
-    set({ isPlaying, progressMs });
+    set({ isPlaying, progressMs, progressSyncedAt: Date.now() });
   },
 
   setBeatData: (data) => {
     const current = get().beatIntensity;
-    const hitIntensity = clamp01(data.intensity * (data.isBeat ? 1.25 : 1));
+    const target = clamp01(data.bassEnergy * 0.9 + (data.isBeat ? 0.35 : 0));
     const nextIntensity = data.isBeat
-      ? clamp01(Math.max(current, hitIntensity))
-      : clamp01(Math.max(current, data.bassEnergy, hitIntensity) - 0.03);
-
-    const energy = clamp01(Math.max(nextIntensity, data.bassEnergy * 1.1));
+      ? clamp01(current * 0.55 + target * 0.45)
+      : clamp01(current * 0.94 + target * 0.06);
 
     set({
       beatIntensity: nextIntensity,
       bassEnergy: data.bassEnergy,
       bpm: data.bpm,
       isBeat: data.isBeat,
-      matrixSpeed: 1 + energy * 10,
-      matrixBrightness: 0.4 + energy * 1,
-      matrixDensity: 0.15 + energy * 0.9,
+      ...computeMatrixParams(nextIntensity, get().volumePercent),
     });
   },
 
   setVolume: (v) => {
-    set({ volumePercent: Math.max(0, Math.min(100, v)) });
+    const volumePercent = Math.max(0, Math.min(100, Math.round(v)));
+    const energy = get().beatIntensity;
+    set({
+      volumePercent,
+      ...computeMatrixParams(energy, volumePercent),
+    });
   },
 
   setShuffle: (shuffle) => set({ shuffle }),

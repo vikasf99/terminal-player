@@ -53,29 +53,48 @@ const spotifyFetch = async <T>(path: string, token: string): Promise<T> => {
   return (await response.json()) as T;
 };
 
-export const getCurrentTrack = async (token: string): Promise<SpotifyTrack | null> => {
+export type PlaybackSnapshot = {
+  track: SpotifyTrack | null;
+  isPlaying: boolean;
+  progressMs: number;
+  volumePercent: number | null;
+};
+
+export const getPlaybackSnapshot = async (token: string): Promise<PlaybackSnapshot> => {
   try {
     const data = await spotifyFetch<{
       is_playing: boolean;
       progress_ms: number;
       item: SpotifyTrack | null;
-    }>('/me/player/currently-playing', token);
+      device?: { volume_percent?: number | null };
+    }>('/me/player', token);
 
-    if (!data.item) {
-      return null;
-    }
+    const track = data.item
+      ? {
+          ...data.item,
+          is_playing: data.is_playing,
+          progress_ms: data.progress_ms,
+        }
+      : null;
 
     return {
-      ...data.item,
-      is_playing: data.is_playing,
-      progress_ms: data.progress_ms,
+      track,
+      isPlaying: data.is_playing,
+      progressMs: data.progress_ms ?? 0,
+      volumePercent:
+        typeof data.device?.volume_percent === 'number' ? data.device.volume_percent : null,
     };
   } catch (error) {
     if (error instanceof SpotifyApiError && error.status === 204) {
-      return null;
+      return { track: null, isPlaying: false, progressMs: 0, volumePercent: null };
     }
     throw error;
   }
+};
+
+export const getCurrentTrack = async (token: string): Promise<SpotifyTrack | null> => {
+  const snapshot = await getPlaybackSnapshot(token);
+  return snapshot.track;
 };
 
 export const getAudioFeatures = async (
