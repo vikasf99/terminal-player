@@ -48,7 +48,9 @@ export function TrackRow({ index, track, isActive, isSelected = false, onClick }
         <span style={{ flex: 1, color: 'var(--white)', textShadow: isActive ? 'var(--glow-green)' : 'none' }}>{track.name}</span>
         <span style={{ color: 'var(--gray-muted)' }}>{formatMs(track.duration_ms)}</span>
       </div>
-      <div style={{ marginTop: 2, color: 'var(--green-mid)' }}>{track.artists.map((a) => a.name).join(', ')}</div>
+      <div style={{ marginTop: 2, color: 'var(--green-mid)' }}>
+        {(track.artists ?? []).map((a) => a.name).join(', ') || 'unknown artist'}
+      </div>
     </button>
   );
 }

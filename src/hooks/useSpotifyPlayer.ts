@@ -78,12 +78,13 @@ export const useSpotifyPlayer = (): SpotifyPlayerState => {
     let mounted = true;
 
     const init = async (): Promise<void> => {
-      await loadSpotifySdk();
-      if (!window.Spotify || !mounted) {
-        return;
-      }
+      try {
+        await loadSpotifySdk();
+        if (!window.Spotify || !mounted) {
+          return;
+        }
 
-      const player = new window.Spotify.Player({
+        const player = new window.Spotify.Player({
         name: 'terminal-playlist',
         getOAuthToken: async (callback) => {
           try {
@@ -96,11 +97,18 @@ export const useSpotifyPlayer = (): SpotifyPlayerState => {
       });
 
       player.addListener('player_state_changed', (state: Spotify.WebPlaybackState | null) => {
-        if (!state) {
+        if (!state?.track_window?.current_track) {
           return;
         }
         setPlayback(!state.paused, state.position);
-        setTrack(state.track_window.current_track as SpotifyTrack);
+        const sdkTrack = state.track_window.current_track;
+        setTrack({
+          id: sdkTrack.id,
+          name: sdkTrack.name ?? 'unknown track',
+          artists: sdkTrack.artists ?? [],
+          album: sdkTrack.album ?? { id: '', name: 'unknown' },
+          duration_ms: sdkTrack.duration_ms ?? 0,
+        });
       });
 
       player.addListener('ready', async ({ device_id }: { device_id: string }) => {
@@ -118,8 +126,11 @@ export const useSpotifyPlayer = (): SpotifyPlayerState => {
         setIsReady(false);
       });
 
-      await player.connect();
-      playerRef.current = player;
+        await player.connect();
+        playerRef.current = player;
+      } catch (error) {
+        console.warn('spotify player init failed', error);
+      }
     };
 
     void init();

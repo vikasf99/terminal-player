@@ -87,7 +87,12 @@ export const getAudioFeatures = async (
 
 export const getUserPlaylists = async (token: string): Promise<SpotifyPlaylist[]> => {
   const data = await spotifyFetch<{ items: SpotifyPlaylist[] }>('/me/playlists?limit=50', token);
-  return data.items;
+  return data.items.map((playlist) => ({
+    ...playlist,
+    name: playlist.name ?? 'untitled playlist',
+    description: playlist.description ?? '',
+    tracks: { total: playlist.tracks?.total ?? 0 },
+  }));
 };
 
 export const getPlaylistTracks = async (token: string, playlistId: string): Promise<SpotifyTrack[]> => {
@@ -102,9 +107,16 @@ export const getPlaylistTracks = async (token: string, playlistId: string): Prom
     }>(`/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}&fields=items(track(id,name,artists,album,duration_ms)),next`, token);
 
     for (const item of data.items) {
-      if (item.track?.id) {
-        tracks.push(item.track);
+      if (!item.track?.id) {
+        continue;
       }
+      tracks.push({
+        ...item.track,
+        name: item.track.name ?? 'unknown track',
+        artists: item.track.artists ?? [],
+        album: item.track.album ?? { id: '', name: 'unknown' },
+        duration_ms: item.track.duration_ms ?? 0,
+      });
     }
 
     if (!data.next) {

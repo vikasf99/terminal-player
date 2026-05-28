@@ -79,7 +79,7 @@ export function PlaylistPicker({
           >
             <span style={{ color: 'var(--gray-muted)', marginRight: 6 }}>{isSelected ? '>' : ' '}</span>
             {playlist.name}
-            <span style={{ color: 'var(--gray-muted)', marginLeft: 6 }}>({playlist.tracks.total})</span>
+            <span style={{ color: 'var(--gray-muted)', marginLeft: 6 }}>({playlist.tracks?.total ?? 0})</span>
           </button>
         );
       })}

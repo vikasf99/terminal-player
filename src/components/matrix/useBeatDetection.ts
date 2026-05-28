@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 
 import { BeatDetector } from '@/lib/beat';
+import { getOrCreateAudioGraph } from '@/lib/audioGraph';
 import { usePlayerStore } from '@/stores/playerStore';
 
 type UseBeatDetectionResult = {
@@ -15,7 +16,6 @@ export const useBeatDetection = (audioElement: RefObject<HTMLAudioElement | null
   const [isActive, setIsActive] = useState(false);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const detectorRef = useRef<BeatDetector | null>(null);
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const rafRef = useRef<number | null>(null);
   const pausedRef = useRef(false);
   const setBeatData = usePlayerStore((state) => state.setBeatData);
@@ -25,8 +25,6 @@ export const useBeatDetection = (audioElement: RefObject<HTMLAudioElement | null
     if (!el) {
       return;
     }
-
-    let localContext: AudioContext | null = null;
 
     const stopLoop = (): void => {
       if (rafRef.current !== null) {
@@ -53,14 +51,15 @@ export const useBeatDetection = (audioElement: RefObject<HTMLAudioElement | null
         return;
       }
 
-      localContext = new AudioContext();
-      await localContext.resume();
-      setAudioContext(localContext);
-
-      sourceRef.current = localContext.createMediaElementSource(audioElement.current);
-      detectorRef.current = new BeatDetector(localContext, sourceRef.current);
-      setIsActive(true);
-      startLoop();
+      try {
+        const { context, source } = await getOrCreateAudioGraph(audioElement.current);
+        setAudioContext(context);
+        detectorRef.current = new BeatDetector(context, source);
+        setIsActive(true);
+        startLoop();
+      } catch (error) {
+        console.warn('beat detection unavailable', error);
+      }
     };
 
     const onFirstInteraction = (): void => {
@@ -91,12 +90,7 @@ export const useBeatDetection = (audioElement: RefObject<HTMLAudioElement | null
       stopLoop();
       detectorRef.current?.destroy();
       detectorRef.current = null;
-      sourceRef.current = null;
-      if (localContext) {
-        void localContext.close();
-      }
       setIsActive(false);
-      setAudioContext(null);
     };
   }, [audioElement, setBeatData]);
 

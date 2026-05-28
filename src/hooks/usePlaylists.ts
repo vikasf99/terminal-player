@@ -23,11 +23,17 @@ export const usePlaylists = (): PlaylistsState => {
     const load = async (retried = false): Promise<void> => {
       try {
         const response = await fetch('/api/spotify/playlist', { cache: 'no-store' });
-        const data = (await response.json()) as {
+        let data: {
           playlists?: SpotifyPlaylist[];
           error?: string;
           needsReauth?: boolean;
-        };
+        } = {};
+
+        try {
+          data = (await response.json()) as typeof data;
+        } catch {
+          data = {};
+        }
 
         if (response.status === 403 && !retried) {
           const refresh = await fetch('/api/auth/refresh', { method: 'POST' });
