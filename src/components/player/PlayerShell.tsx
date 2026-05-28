@@ -24,6 +24,7 @@ import { useSpotifyPlayer } from '@/hooks/useSpotifyPlayer';
 import { usePlayerKeyboard } from '@/hooks/usePlayerKeyboard';
 import { useViewport } from '@/hooks/useViewport';
 import { playPlaylistTrack } from '@/lib/playback';
+import { useSpotifyBeatSync } from '@/hooks/useSpotifyBeatSync';
 import { usePlayerStore } from '@/stores/playerStore';
 import type { SpotifyPlaylist } from '@/types/spotify';
 
@@ -42,7 +43,10 @@ export function PlayerShell() {
 
   const { deviceId, isReady } = useSpotifyPlayer();
   const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
   const { playlists, isLoading: playlistsLoading, error: playlistsError, needsReauth } = usePlaylists();
+
+  useSpotifyBeatSync(currentTrack, isPlaying);
 
   const [selectedPlaylist, setSelectedPlaylist] = useState<SpotifyPlaylist | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -53,7 +57,7 @@ export function PlayerShell() {
   const playlistId = selectedPlaylist?.id ?? null;
   const { tracks, isLoading: tracksLoading, error: tracksError } = usePlaylistTracks(playlistId);
 
-  const isBuffering = (!isReady && !currentTrack) || tracksLoading;
+  const isBuffering = tracksLoading;
 
   usePlayerKeyboard({
     onToggleDebug: () => setDebugOpen((v) => !v),

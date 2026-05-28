@@ -111,7 +111,8 @@ export function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortcutsPanel
         <ShortcutGroup title="queue" rows={QUEUE_SHORTCUTS} />
 
         <p style={{ margin: '12px 0 0', fontSize: 10, color: 'var(--gray-muted)' }}>
-          press <kbd style={kbdStyle}>esc</kbd> or <ModKeyLabel />/ again to close
+          press <kbd style={kbdStyle}>esc</kbd> or <ModKeyLabel />
+          <span>/</span> again to close
         </p>
       </section>
     </div>

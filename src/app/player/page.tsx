@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { useBeatDetection } from '@/components/matrix/useBeatDetection';
 import { PlayerShell } from '@/components/player/PlayerShell';
+import { PlayerBoundary } from '@/components/player/PlayerBoundary';
 import { Shell } from '@/components/layout/Shell';
-export default function PlayerPage() {
-  const router = useRouter();
-  const audioRef = useRef<HTMLAudioElement>(null);
+import { useSpotifyPlaybackSync } from '@/hooks/useSpotifyPlaybackSync';
 
-  useBeatDetection(audioRef);
+function PlayerContent() {
+  const router = useRouter();
+  const [authReady, setAuthReady] = useState(false);
+
+  useSpotifyPlaybackSync();
 
   useEffect(() => {
     const run = async (): Promise<void> => {
@@ -18,6 +20,7 @@ export default function PlayerPage() {
       for (let i = 0; i < attempts; i += 1) {
         const response = await fetch('/api/spotify/token', { cache: 'no-store' });
         if (response.ok) {
+          setAuthReady(true);
           return;
         }
         await new Promise((resolve) => window.setTimeout(resolve, 250));
@@ -27,10 +30,32 @@ export default function PlayerPage() {
     void run();
   }, [router]);
 
+  if (!authReady) {
+    return (
+      <main
+        style={{
+          minHeight: '100vh',
+          background: 'var(--bg-base)',
+          color: 'var(--gray-muted)',
+          fontFamily: 'var(--font-mono)',
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        loading session...
+      </main>
+    );
+  }
+
+  return <PlayerShell />;
+}
+
+export default function PlayerPage() {
   return (
     <Shell>
-      <PlayerShell />
-      <audio ref={audioRef} style={{ display: 'none' }} aria-hidden="true" />
+      <PlayerBoundary>
+        <PlayerContent />
+      </PlayerBoundary>
     </Shell>
   );
 }

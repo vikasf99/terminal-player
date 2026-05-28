@@ -29,15 +29,20 @@ export function PlaylistPicker({
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
         <p style={{ color: 'var(--magenta)', margin: '0 0 8px' }}>[ERROR] {error}</p>
         {needsReauth ? (
-          <Button
-            variant="ghost"
-            fullWidth={false}
-            onClick={() => {
-              window.location.href = '/api/auth/start?reauth=1';
-            }}
-          >
-            [RE-AUTHENTICATE]
-          </Button>
+          <>
+            <p style={{ color: 'var(--gray-muted)', margin: '0 0 8px', lineHeight: 1.5 }}>
+              add your spotify email in the developer dashboard allowlist, then re-authenticate.
+            </p>
+            <Button
+              variant="ghost"
+              fullWidth={false}
+              onClick={() => {
+                window.location.href = '/api/auth/start?reauth=1';
+              }}
+            >
+              [RE-AUTHENTICATE]
+            </Button>
+          </>
         ) : null}
       </div>
     );

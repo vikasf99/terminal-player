@@ -227,11 +227,12 @@ export const useMatrixRain = (
 
     const unsubscribe = usePlayerStore.subscribe((state) => {
       energyRef.current = state.beatIntensity;
+      const densityFloor = 0.28;
       configRef.current = {
         ...configRef.current,
-        speed: state.matrixSpeed,
-        brightness: state.matrixBrightness,
-        density: state.matrixDensity * slowDensityScale,
+        speed: Math.max(1, state.matrixSpeed),
+        brightness: Math.max(0.45, state.matrixBrightness),
+        density: Math.max(densityFloor, state.matrixDensity * slowDensityScale),
       };
       if (state.isBeat) {
         isBeatRef.current = true;

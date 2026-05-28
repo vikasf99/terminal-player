@@ -30,7 +30,7 @@ export function MatrixCanvas() {
     return {
       speed: 1.5,
       brightness: 0.7,
-      density: slow ? 0.2 : 0.4,
+      density: slow ? 0.28 : 0.45,
       fontSize: 14,
       charSet: CHAR_SET,
       columnScale: 1,
@@ -64,7 +64,7 @@ export function MatrixCanvas() {
       const slow = isSlowDevice();
       updateConfig({
         columnScale: scale,
-        density: slow ? 0.2 : 0.4,
+        density: slow ? 0.28 : 0.45,
       });
       stop();
       start();
