@@ -31,7 +31,7 @@ export function PlaylistPicker({
         {needsReauth ? (
           <>
             <p style={{ color: 'var(--gray-muted)', margin: '0 0 8px', lineHeight: 1.5 }}>
-              add your spotify email in the developer dashboard allowlist, then re-authenticate.
+              add your spotify email in the developer dashboard allowlist, then use re-authenticate (required after feb 2026 api changes).
             </p>
             <Button
               variant="ghost"

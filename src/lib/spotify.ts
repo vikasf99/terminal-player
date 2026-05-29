@@ -113,11 +113,26 @@ const getUserMarket = async (token: string): Promise<string | undefined> => {
   }
 };
 
+type PlaylistItemPayload = SpotifyTrack & {
+  type?: string;
+  linked_from?: { id?: string };
+};
+
 type PlaylistItemEntry = {
-  track?: (SpotifyTrack & { linked_from?: { id?: string } }) | null;
-  item?: (SpotifyTrack & { type?: string }) | null;
+  track?: PlaylistItemPayload | null;
+  item?: PlaylistItemPayload | null;
   is_local?: boolean;
 };
+
+type PlaylistPaging = {
+  total?: number;
+  items?: PlaylistItemEntry[];
+};
+
+const resolvePlaylistTotal = (playlist: {
+  items?: { total?: number };
+  tracks?: { total?: number };
+}): number => playlist.items?.total ?? playlist.tracks?.total ?? 0;
 
 const resolveTrackId = (raw: PlaylistItemEntry['track'] | PlaylistItemEntry['item']): string | null => {
   if (!raw) {
@@ -145,23 +160,22 @@ const normalizeTrack = (raw: SpotifyTrack, fallbackId?: string): SpotifyTrack | 
 };
 
 const extractTrackFromEntry = (entry: PlaylistItemEntry): SpotifyTrack | null => {
-  const fromTrack = entry.track;
-  if (fromTrack) {
-    const id = resolveTrackId(fromTrack);
-    if (id) {
-      return normalizeTrack({ ...fromTrack, id }, id);
-    }
-    if (entry.is_local && fromTrack.name) {
-      return normalizeTrack({ ...fromTrack, id: `local-${fromTrack.name}` });
-    }
+  const payload = entry.item ?? entry.track;
+  if (!payload) {
+    return null;
   }
 
-  const fromItem = entry.item;
-  if (fromItem && (fromItem.type === 'track' || fromItem.type === undefined)) {
-    const id = resolveTrackId(fromItem);
-    if (id) {
-      return normalizeTrack({ ...fromItem, id }, id);
-    }
+  if (payload.type && payload.type !== 'track') {
+    return null;
+  }
+
+  const id = resolveTrackId(payload);
+  if (id) {
+    return normalizeTrack({ ...payload, id }, id);
+  }
+
+  if (entry.is_local && payload.name) {
+    return normalizeTrack({ ...payload, id: `local-${payload.name}` });
   }
 
   return null;
@@ -179,22 +193,23 @@ const collectTracks = (items: PlaylistItemEntry[]): SpotifyTrack[] => {
 };
 
 export const getUserPlaylists = async (token: string): Promise<SpotifyPlaylist[]> => {
-  const data = await spotifyFetch<{ items: SpotifyPlaylist[] }>('/me/playlists?limit=50', token);
+  const data = await spotifyFetch<{
+    items: Array<SpotifyPlaylist & { items?: { total?: number }; tracks?: { total?: number } }>;
+  }>('/me/playlists?limit=50', token);
+
   return data.items.map((playlist) => ({
-    ...playlist,
+    id: playlist.id,
     name: playlist.name ?? 'untitled playlist',
     description: playlist.description ?? '',
-    tracks: { total: playlist.tracks?.total ?? 0 },
+    tracks: { total: resolvePlaylistTotal(playlist) },
   }));
 };
 
-const fetchPlaylistTracksPage = async (
-  token: string,
-  playlistId: string,
+const buildPlaylistItemsParams = (
   offset: number,
   limit: number,
   market?: string,
-): Promise<{ items: PlaylistItemEntry[]; next: string | null }> => {
+): URLSearchParams => {
   const params = new URLSearchParams({
     limit: String(limit),
     offset: String(offset),
@@ -203,24 +218,45 @@ const fetchPlaylistTracksPage = async (
   if (market) {
     params.set('market', market);
   }
+  return params;
+};
+
+const fetchPlaylistItemsPage = async (
+  token: string,
+  playlistId: string,
+  offset: number,
+  limit: number,
+  market: string | undefined,
+  useLegacyTracksEndpoint: boolean,
+): Promise<{ items: PlaylistItemEntry[]; next: string | null }> => {
+  const params = buildPlaylistItemsParams(offset, limit, market);
+  const segment = useLegacyTracksEndpoint ? 'tracks' : 'items';
 
   return spotifyFetch<{ items: PlaylistItemEntry[]; next: string | null }>(
-    `/playlists/${playlistId}/tracks?${params.toString()}`,
+    `/playlists/${playlistId}/${segment}?${params.toString()}`,
     token,
   );
 };
 
-const paginatePlaylistTracks = async (
+const paginatePlaylistItems = async (
   token: string,
   playlistId: string,
-  market?: string,
+  market: string | undefined,
+  useLegacyTracksEndpoint: boolean,
 ): Promise<SpotifyTrack[]> => {
   const tracks: SpotifyTrack[] = [];
   let offset = 0;
-  const limit = 100;
+  const limit = 50;
 
   while (true) {
-    const data = await fetchPlaylistTracksPage(token, playlistId, offset, limit, market);
+    const data = await fetchPlaylistItemsPage(
+      token,
+      playlistId,
+      offset,
+      limit,
+      market,
+      useLegacyTracksEndpoint,
+    );
     tracks.push(...collectTracks(data.items));
 
     if (!data.next) {
@@ -232,7 +268,7 @@ const paginatePlaylistTracks = async (
   return tracks;
 };
 
-const fetchPlaylistTracksFallback = async (
+const fetchPlaylistItemsFallback = async (
   token: string,
   playlistId: string,
   market?: string,
@@ -244,19 +280,21 @@ const fetchPlaylistTracksFallback = async (
 
   const query = params.toString();
   const data = await spotifyFetch<{
-    tracks?: { items: PlaylistItemEntry[] };
+    items?: PlaylistPaging;
+    tracks?: PlaylistPaging;
   }>(`/playlists/${playlistId}${query ? `?${query}` : ''}`, token);
 
-  return collectTracks(data.tracks?.items ?? []);
+  const entries = data.items?.items ?? data.tracks?.items ?? [];
+  return collectTracks(entries);
 };
 
 export const getPlaylistTrackCount = async (token: string, playlistId: string): Promise<number> => {
   try {
-    const data = await spotifyFetch<{ tracks?: { total?: number } }>(
-      `/playlists/${playlistId}?fields=tracks(total)`,
-      token,
-    );
-    return data.tracks?.total ?? 0;
+    const data = await spotifyFetch<{
+      items?: { total?: number };
+      tracks?: { total?: number };
+    }>(`/playlists/${playlistId}?fields=items(total),tracks(total)`, token);
+    return resolvePlaylistTotal(data);
   } catch {
     return 0;
   }
@@ -265,15 +303,19 @@ export const getPlaylistTrackCount = async (token: string, playlistId: string): 
 export const getPlaylistTracks = async (token: string, playlistId: string): Promise<SpotifyTrack[]> => {
   const market = await getUserMarket(token);
   const markets = market ? [undefined, market] : [undefined];
+  const endpointModes = [false, true] as const;
 
-  for (const attemptMarket of markets) {
-    try {
-      const tracks = await paginatePlaylistTracks(token, playlistId, attemptMarket);
-      if (tracks.length > 0) {
-        return tracks;
-      }
-    } catch (error) {
-      if (!(error instanceof SpotifyApiError) || error.status !== 403) {
+  for (const useLegacy of endpointModes) {
+    for (const attemptMarket of markets) {
+      try {
+        const tracks = await paginatePlaylistItems(token, playlistId, attemptMarket, useLegacy);
+        if (tracks.length > 0) {
+          return tracks;
+        }
+      } catch (error) {
+        if (error instanceof SpotifyApiError && (error.status === 403 || error.status === 404)) {
+          continue;
+        }
         throw error;
       }
     }
@@ -281,7 +323,7 @@ export const getPlaylistTracks = async (token: string, playlistId: string): Prom
 
   for (const attemptMarket of markets) {
     try {
-      const tracks = await fetchPlaylistTracksFallback(token, playlistId, attemptMarket);
+      const tracks = await fetchPlaylistItemsFallback(token, playlistId, attemptMarket);
       if (tracks.length > 0) {
         return tracks;
       }
