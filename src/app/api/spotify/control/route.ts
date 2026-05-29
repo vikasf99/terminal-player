@@ -94,7 +94,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const endpoint = endpointFor(body.action, body.value);
-  const response = await fetch(endpoint.url, {
+  const volumeDeviceQuery =
+    body.action === 'volume' && body.deviceId
+      ? `&device_id=${encodeURIComponent(body.deviceId)}`
+      : '';
+  const response = await fetch(`${endpoint.url}${volumeDeviceQuery}`, {
     method: endpoint.method,
     headers: {
       Authorization: `Bearer ${token}`,

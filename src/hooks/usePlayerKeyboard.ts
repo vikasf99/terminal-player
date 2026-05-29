@@ -95,7 +95,7 @@ export const usePlayerKeyboard = ({
       const adjustVolume = (delta: number): void => {
         const next = Math.max(0, Math.min(100, usePlayerStore.getState().volumePercent + delta));
         setVolume(next);
-        sendVolumeToSpotify(next);
+        sendVolumeToSpotify(next, { immediate: true });
       };
 
       if (event.key === 'ArrowUp' || event.key === '+' || event.key === '=') {

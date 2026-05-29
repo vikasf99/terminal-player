@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { shouldApplyRemoteVolume } from '@/lib/volumeApi';
 import { usePlayerStore } from '@/stores/playerStore';
 import type { SpotifyTrack } from '@/types/spotify';
 
@@ -36,8 +37,11 @@ export const useSpotifyPlaybackSync = (): void => {
         const progressMs = data.progressMs ?? data.track?.progress_ms ?? 0;
         setPlayback(isPlaying, progressMs);
 
-        if (typeof data.volumePercent === 'number') {
-          setVolume(data.volumePercent);
+        if (typeof data.volumePercent === 'number' && shouldApplyRemoteVolume()) {
+          const current = usePlayerStore.getState().volumePercent;
+          if (Math.abs(current - data.volumePercent) >= 1) {
+            setVolume(data.volumePercent);
+          }
         }
       } catch {
         // keep last known state

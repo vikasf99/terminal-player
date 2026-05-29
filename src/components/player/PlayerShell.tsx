@@ -24,6 +24,7 @@ import { useSpotifyPlayer } from '@/hooks/useSpotifyPlayer';
 import { usePlayerKeyboard } from '@/hooks/usePlayerKeyboard';
 import { useViewport } from '@/hooks/useViewport';
 import { playPlaylistTrack } from '@/lib/playback';
+import { setVolumeDeviceId } from '@/lib/volumeApi';
 import { useSpotifyBeatSync } from '@/hooks/useSpotifyBeatSync';
 import { usePlayerStore } from '@/stores/playerStore';
 import type { SpotifyPlaylist } from '@/types/spotify';
@@ -47,6 +48,30 @@ export function PlayerShell() {
   const { playlists, isLoading: playlistsLoading, error: playlistsError, needsReauth } = usePlaylists();
 
   useSpotifyBeatSync(currentTrack, isPlaying);
+
+  useEffect(() => {
+    setVolumeDeviceId(deviceId);
+    return () => setVolumeDeviceId(null);
+  }, [deviceId]);
+
+  useEffect(() => {
+    if (!isReady || !deviceId) {
+      return;
+    }
+
+    const syncVolume = async (): Promise<void> => {
+      const response = await fetch('/api/spotify/current-track', { cache: 'no-store' });
+      if (!response.ok) {
+        return;
+      }
+      const data = (await response.json()) as { volumePercent?: number | null };
+      if (typeof data.volumePercent === 'number') {
+        usePlayerStore.getState().setVolume(data.volumePercent);
+      }
+    };
+
+    void syncVolume();
+  }, [deviceId, isReady]);
 
   const [selectedPlaylist, setSelectedPlaylist] = useState<SpotifyPlaylist | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -192,7 +217,7 @@ export function PlayerShell() {
           <NowPlaying isBuffering={isBuffering} />
           <ProgressBar />
           <Controls />
-          <VolumeControl />
+          <VolumeControl deviceId={deviceId} />
           <KeyboardShortcutsHint onOpen={() => setShortcutsOpen(true)} />
         </TerminalWindow>
       </div>

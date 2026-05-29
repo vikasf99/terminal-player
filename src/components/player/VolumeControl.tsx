@@ -2,62 +2,85 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { sendVolumeToSpotify } from '@/lib/volumeApi';
+import { flushVolumeToSpotify, sendVolumeToSpotify } from '@/lib/volumeApi';
 import { usePlayerStore } from '@/stores/playerStore';
 
 const SEGMENTS = 20;
+const STEP = 5;
 
 const volumeFromPointer = (clientX: number, rect: DOMRect): number => {
   const ratio = (clientX - rect.left) / rect.width;
   return Math.max(0, Math.min(100, Math.round(ratio * 100)));
 };
 
-export function VolumeControl() {
+type VolumeControlProps = {
+  deviceId?: string | null;
+};
+
+export function VolumeControl({ deviceId = null }: VolumeControlProps) {
   const storeVolume = usePlayerStore((s) => s.volumePercent);
   const setVolume = usePlayerStore((s) => s.setVolume);
   const ref = useRef<HTMLDivElement>(null);
-  const draggingRef = useRef(false);
+  const isDraggingRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [displayVolume, setDisplayVolume] = useState(storeVolume);
 
   useEffect(() => {
-    if (!draggingRef.current) {
+    if (!isDragging) {
       setDisplayVolume(storeVolume);
     }
-  }, [storeVolume]);
+  }, [storeVolume, isDragging]);
 
   const applyVolume = useCallback(
-    (next: number): void => {
-      setDisplayVolume(next);
-      setVolume(next);
-      sendVolumeToSpotify(next);
+    (next: number, immediate = false): void => {
+      const clamped = Math.max(0, Math.min(100, Math.round(next)));
+      setDisplayVolume(clamped);
+      setVolume(clamped);
+      sendVolumeToSpotify(clamped, { immediate, deviceId });
     },
-    [setVolume],
+    [deviceId, setVolume],
   );
 
-  const updateFromEvent = useCallback(
-    (clientX: number): void => {
+  const updateFromPointer = useCallback(
+    (clientX: number, immediate = false): void => {
       const rect = ref.current?.getBoundingClientRect();
-      if (!rect) {
+      if (!rect || rect.width <= 0) {
         return;
       }
-      applyVolume(volumeFromPointer(clientX, rect));
+      applyVolume(volumeFromPointer(clientX, rect), immediate);
     },
     [applyVolume],
   );
 
-  useEffect(() => {
-    const onMove = (event: PointerEvent): void => {
-      if (!draggingRef.current) {
+  const endDrag = useCallback(
+    (pointerId?: number): void => {
+      if (!isDraggingRef.current) {
         return;
       }
-      updateFromEvent(event.clientX);
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      if (pointerId !== undefined && ref.current?.hasPointerCapture(pointerId)) {
+        ref.current.releasePointerCapture(pointerId);
+      }
+      flushVolumeToSpotify(usePlayerStore.getState().volumePercent, deviceId);
+    },
+    [deviceId],
+  );
+
+  useEffect(() => {
+    const onMove = (event: PointerEvent): void => {
+      if (!isDraggingRef.current) {
+        return;
+      }
+      event.preventDefault();
+      updateFromPointer(event.clientX);
     };
 
-    const onUp = (): void => {
-      draggingRef.current = false;
+    const onUp = (event: PointerEvent): void => {
+      endDrag(event.pointerId);
     };
 
-    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointermove', onMove, { passive: false });
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
 
@@ -66,7 +89,7 @@ export function VolumeControl() {
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
     };
-  }, [updateFromEvent]);
+  }, [endDrag, updateFromPointer]);
 
   const filled = Math.round((displayVolume / 100) * SEGMENTS);
   const blocks = `${'█'.repeat(filled)}${'░'.repeat(SEGMENTS - filled)}`;
@@ -82,23 +105,37 @@ export function VolumeControl() {
         aria-valuenow={displayVolume}
         tabIndex={0}
         onPointerDown={(event) => {
-          draggingRef.current = true;
+          event.preventDefault();
+          event.stopPropagation();
+          isDraggingRef.current = true;
+          setIsDragging(true);
           ref.current?.setPointerCapture(event.pointerId);
-          updateFromEvent(event.clientX);
+          updateFromPointer(event.clientX, true);
+        }}
+        onPointerUp={(event) => {
+          endDrag(event.pointerId);
+        }}
+        onWheel={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const delta = event.deltaY < 0 ? STEP : -STEP;
+          applyVolume(displayVolume + delta, true);
         }}
         onKeyDown={(event) => {
-          if (event.key === 'ArrowLeft') {
+          if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
             event.preventDefault();
-            applyVolume(Math.max(0, displayVolume - 5));
+            event.stopPropagation();
+            applyVolume(displayVolume - STEP, true);
           }
-          if (event.key === 'ArrowRight') {
+          if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
             event.preventDefault();
-            applyVolume(Math.min(100, displayVolume + 5));
+            event.stopPropagation();
+            applyVolume(displayVolume + STEP, true);
           }
         }}
         style={{
           cursor: 'ew-resize',
-          padding: '4px 0',
+          padding: '6px 0',
           touchAction: 'none',
         }}
       >
