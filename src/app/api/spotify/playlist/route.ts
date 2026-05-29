@@ -14,10 +14,13 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json({ playlists });
   } catch (error) {
     if (error instanceof SpotifyApiError) {
+      const isForbidden = error.status === 403;
       return NextResponse.json(
         {
           error: error.message,
-          needsReauth: error.status === 403,
+          reason: isForbidden ? 'dev_mode_allowlist' : error.status === 401 ? 'session_expired' : 'unknown',
+          needsReauth: error.status === 401,
+          needsAllowlist: isForbidden,
         },
         { status: error.status },
       );

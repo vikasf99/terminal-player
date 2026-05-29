@@ -3,19 +3,20 @@
 import { useEffect, useState } from 'react';
 
 import type { SpotifyPlaylist } from '@/types/spotify';
+import type { SpotifyAccessErrorBody, SpotifyAccessReason } from '@/types/spotifyAccess';
 
 type PlaylistsState = {
   playlists: SpotifyPlaylist[];
   isLoading: boolean;
   error: string | null;
-  needsReauth: boolean;
+  accessReason: SpotifyAccessReason | null;
 };
 
 export const usePlaylists = (): PlaylistsState => {
   const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [needsReauth, setNeedsReauth] = useState(false);
+  const [accessReason, setAccessReason] = useState<SpotifyAccessReason | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,11 +24,7 @@ export const usePlaylists = (): PlaylistsState => {
     const load = async (retried = false): Promise<void> => {
       try {
         const response = await fetch('/api/spotify/playlist', { cache: 'no-store' });
-        let data: {
-          playlists?: SpotifyPlaylist[];
-          error?: string;
-          needsReauth?: boolean;
-        } = {};
+        let data: SpotifyAccessErrorBody & { playlists?: SpotifyPlaylist[] } = {};
 
         try {
           data = (await response.json()) as typeof data;
@@ -44,24 +41,31 @@ export const usePlaylists = (): PlaylistsState => {
         }
 
         if (!response.ok) {
-          if (data.needsReauth || response.status === 403) {
-            if (!cancelled) {
-              setNeedsReauth(true);
-              setError('could not load playlists — sign in again with spotify premium');
+          if (!cancelled) {
+            setPlaylists([]);
+            if (data.needsAllowlist || data.reason === 'dev_mode_allowlist' || response.status === 403) {
+              setAccessReason('dev_mode_allowlist');
+              setError('playlist access not enabled for this spotify account');
+            } else if (data.needsReauth || response.status === 401) {
+              setAccessReason('session_expired');
+              setError('session expired');
+            } else {
+              setAccessReason('unknown');
+              setError(`could not load playlists (${response.status})`);
             }
-            return;
           }
-          throw new Error(`failed to load playlists (${response.status})`);
+          return;
         }
 
         if (!cancelled) {
           setPlaylists(data.playlists ?? []);
           setError(null);
-          setNeedsReauth(false);
+          setAccessReason(null);
         }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'unknown error');
+          setAccessReason('unknown');
         }
       } finally {
         if (!cancelled) {
@@ -76,5 +80,5 @@ export const usePlaylists = (): PlaylistsState => {
     };
   }, []);
 
-  return { playlists, isLoading, error, needsReauth };
+  return { playlists, isLoading, error, accessReason };
 };

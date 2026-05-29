@@ -3,9 +3,10 @@
 import { useEffect, useRef } from 'react';
 
 import type { SpotifyTrack } from '@/types/spotify';
-import { Button } from '@/components/ui/Button';
 import { Divider } from '@/components/ui/Divider';
+import { SpotifyAccessNotice } from '@/components/player/SpotifyAccessNotice';
 import { TrackRow } from '@/components/player/TrackRow';
+import type { SpotifyAccessReason } from '@/types/spotifyAccess';
 
 type TrackListProps = {
   title: string;
@@ -14,7 +15,7 @@ type TrackListProps = {
   selectedIndex: number;
   isLoading?: boolean;
   error?: string | null;
-  needsReauth?: boolean;
+  accessReason?: SpotifyAccessReason | null;
   playlistTotal?: number;
   onSelectIndex: (index: number) => void;
   onPlayIndex: (index: number) => void;
@@ -27,7 +28,7 @@ export function TrackList({
   selectedIndex,
   isLoading,
   error,
-  needsReauth = false,
+  accessReason = null,
   playlistTotal = 0,
   onSelectIndex,
   onPlayIndex,
@@ -53,17 +54,7 @@ export function TrackList({
       {error ? (
         <div style={{ margin: '8px 0' }}>
           <p style={{ color: 'var(--magenta)', fontSize: 12, margin: '0 0 8px' }}>[ERROR] {error}</p>
-          {needsReauth ? (
-            <Button
-              variant="ghost"
-              fullWidth={false}
-              onClick={() => {
-                window.location.href = '/api/auth/start?reauth=1';
-              }}
-            >
-              [RE-AUTHENTICATE]
-            </Button>
-          ) : null}
+          {accessReason ? <SpotifyAccessNotice reason={accessReason} /> : null}
         </div>
       ) : null}
       {!isLoading && !error ? (

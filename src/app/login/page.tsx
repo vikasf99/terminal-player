@@ -66,6 +66,8 @@ function LoginContent() {
         <div style={{ marginTop: '12px', color: 'var(--gray-muted)', fontSize: 11, lineHeight: 1.6 }}>
           requires spotify premium · playback stays in your browser
           <br />
+          invite-only while the app is in spotify development mode (max 5 accounts)
+          <br />
           <a href={privacyPolicyHref} style={{ color: 'var(--green-mid)' }}>
             privacy policy
           </a>

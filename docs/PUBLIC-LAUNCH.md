@@ -36,10 +36,13 @@ Spotify’s **Extended Quota Mode** (unlimited users) is primarily aimed at orga
 
 ### Path B — Development mode (up to 5 users, no approval)
 
+**This is why friends see “re-authenticate” / empty tracks today** — they can log in, but Spotify blocks API calls until they are on your allowlist.
+
 1. Dashboard → app → **Users and Access** (allowlist).
-2. Add each tester’s **Spotify account email** (max 5 total including you).
-3. Each user visits `/api/auth/start?reauth=1` after being added.
-4. App owner must keep **Spotify Premium** active.
+2. Add each friend’s **Spotify account email** (the email on their Spotify account, max 5 total including you).
+3. Friend opens https://terminal-player.vercel.app/login and signs in again (or `/api/auth/start?reauth=1`).
+4. Friend needs **Spotify Premium**.
+5. App owner must keep **Spotify Premium** active.
 
 ### Path C — Custom domain (optional, after approval)
 

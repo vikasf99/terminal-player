@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 
 import type { SpotifyTrack } from '@/types/spotify';
+import type { SpotifyAccessErrorBody, SpotifyAccessReason } from '@/types/spotifyAccess';
 
 type PlaylistTracksState = {
   tracks: SpotifyTrack[];
   isLoading: boolean;
   error: string | null;
-  needsReauth: boolean;
+  accessReason: SpotifyAccessReason | null;
   playlistTotal: number;
 };
 
@@ -16,7 +17,7 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
   const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [needsReauth, setNeedsReauth] = useState(false);
+  const [accessReason, setAccessReason] = useState<SpotifyAccessReason | null>(null);
   const [playlistTotal, setPlaylistTotal] = useState(0);
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
       setTracks([]);
       setIsLoading(false);
       setError(null);
-      setNeedsReauth(false);
+      setAccessReason(null);
       setPlaylistTotal(0);
       return;
     }
@@ -32,7 +33,7 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    setNeedsReauth(false);
+    setAccessReason(null);
     setPlaylistTotal(0);
 
     const load = async (retried = false): Promise<void> => {
@@ -41,8 +42,7 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
           cache: 'no-store',
         });
 
-        let data: { tracks?: SpotifyTrack[]; playlistTotal?: number; error?: string; needsReauth?: boolean } =
-          {};
+        let data: SpotifyAccessErrorBody & { tracks?: SpotifyTrack[]; playlistTotal?: number } = {};
         try {
           data = (await response.json()) as typeof data;
         } catch {
@@ -58,17 +58,20 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
         }
 
         if (!response.ok) {
-          if (data.needsReauth || response.status === 403) {
-            if (!cancelled) {
-              setTracks([]);
-              setNeedsReauth(true);
-              setError(
-                'could not load playlist tracks — sign in again with spotify premium or try a playlist you own',
-              );
+          if (!cancelled) {
+            setTracks([]);
+            if (data.needsAllowlist || data.reason === 'dev_mode_allowlist' || response.status === 403) {
+              setAccessReason('dev_mode_allowlist');
+              setError('track access not enabled for this spotify account');
+            } else if (data.needsReauth || response.status === 401) {
+              setAccessReason('session_expired');
+              setError('session expired');
+            } else {
+              setAccessReason('unknown');
+              setError(`failed to load tracks (${response.status})`);
             }
-            return;
           }
-          throw new Error(`failed to load tracks (${response.status})`);
+          return;
         }
 
         if (!cancelled) {
@@ -77,17 +80,21 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
           setTracks(loaded);
           setPlaylistTotal(total);
           if (loaded.length === 0 && total > 0) {
-            setError('tracks could not be loaded for your region — try re-authenticating');
-            setNeedsReauth(true);
+            setAccessReason('dev_mode_allowlist');
+            setError('tracks blocked for this account — invitation required');
+          } else if (loaded.length === 0) {
+            setError(null);
+            setAccessReason(null);
           } else {
             setError(null);
-            setNeedsReauth(false);
+            setAccessReason(null);
           }
         }
       } catch (err) {
         if (!cancelled) {
           setTracks([]);
           setError(err instanceof Error ? err.message : 'unknown error');
+          setAccessReason('unknown');
         }
       } finally {
         if (!cancelled) {
@@ -102,5 +109,5 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
     };
   }, [playlistId]);
 
-  return { tracks, isLoading, error, needsReauth, playlistTotal };
+  return { tracks, isLoading, error, accessReason, playlistTotal };
 };

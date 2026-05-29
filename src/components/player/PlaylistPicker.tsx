@@ -1,14 +1,15 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
+import { SpotifyAccessNotice } from '@/components/player/SpotifyAccessNotice';
 import type { SpotifyPlaylist } from '@/types/spotify';
+import type { SpotifyAccessReason } from '@/types/spotifyAccess';
 
 type PlaylistPickerProps = {
   playlists: SpotifyPlaylist[];
   selectedId: string | null;
   isLoading: boolean;
   error: string | null;
-  needsReauth?: boolean;
+  accessReason?: SpotifyAccessReason | null;
   onSelect: (playlist: SpotifyPlaylist) => void;
 };
 
@@ -17,7 +18,7 @@ export function PlaylistPicker({
   selectedId,
   isLoading,
   error,
-  needsReauth = false,
+  accessReason = null,
   onSelect,
 }: PlaylistPickerProps) {
   if (isLoading) {
@@ -28,22 +29,7 @@ export function PlaylistPicker({
     return (
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
         <p style={{ color: 'var(--magenta)', margin: '0 0 8px' }}>[ERROR] {error}</p>
-        {needsReauth ? (
-          <>
-            <p style={{ color: 'var(--gray-muted)', margin: '0 0 8px', lineHeight: 1.5 }}>
-              sign in again with spotify premium. if this persists, your account may not have access while the app is in spotify development mode.
-            </p>
-            <Button
-              variant="ghost"
-              fullWidth={false}
-              onClick={() => {
-                window.location.href = '/api/auth/start?reauth=1';
-              }}
-            >
-              [RE-AUTHENTICATE]
-            </Button>
-          </>
-        ) : null}
+        {accessReason ? <SpotifyAccessNotice reason={accessReason} /> : null}
       </div>
     );
   }

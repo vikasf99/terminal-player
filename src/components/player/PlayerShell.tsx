@@ -45,7 +45,12 @@ export function PlayerShell() {
   const { deviceId, isReady } = useSpotifyPlayer();
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
-  const { playlists, isLoading: playlistsLoading, error: playlistsError, needsReauth } = usePlaylists();
+  const {
+    playlists,
+    isLoading: playlistsLoading,
+    error: playlistsError,
+    accessReason: playlistsAccessReason,
+  } = usePlaylists();
 
   useSpotifyBeatSync(currentTrack, isPlaying);
 
@@ -84,7 +89,7 @@ export function PlayerShell() {
     tracks,
     isLoading: tracksLoading,
     error: tracksError,
-    needsReauth: tracksNeedReauth,
+    accessReason: tracksAccessReason,
     playlistTotal,
   } = usePlaylistTracks(playlistId);
 
@@ -233,7 +238,7 @@ export function PlayerShell() {
               selectedId={selectedPlaylist?.id ?? null}
               isLoading={playlistsLoading}
               error={playlistsError}
-              needsReauth={needsReauth}
+              accessReason={playlistsAccessReason}
               onSelect={(playlist) => setSelectedPlaylist(playlist)}
             />
             <Divider variant="dotted" width={24} />
@@ -244,7 +249,7 @@ export function PlayerShell() {
               selectedIndex={selectedIndex}
               isLoading={tracksLoading}
               error={tracksError}
-              needsReauth={tracksNeedReauth}
+              accessReason={tracksAccessReason}
               playlistTotal={playlistTotal}
               onSelectIndex={setSelectedIndex}
               onPlayIndex={(index) => {
@@ -269,7 +274,7 @@ export function PlayerShell() {
               selectedId={selectedPlaylist?.id ?? null}
               isLoading={playlistsLoading}
               error={playlistsError}
-              needsReauth={needsReauth}
+              accessReason={playlistsAccessReason}
               onSelect={(playlist) => setSelectedPlaylist(playlist)}
             />
             <Divider variant="dotted" width={24} />
@@ -280,7 +285,7 @@ export function PlayerShell() {
               selectedIndex={selectedIndex}
               isLoading={tracksLoading}
               error={tracksError}
-              needsReauth={tracksNeedReauth}
+              accessReason={tracksAccessReason}
               playlistTotal={playlistTotal}
               onSelectIndex={setSelectedIndex}
               onPlayIndex={(index) => {
