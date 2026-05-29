@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'privacy — terminal-playlist',
@@ -21,7 +20,8 @@ const sections = [
   },
   {
     title: 'third parties',
-    body: 'Spotify handles authentication and streaming under Spotify’s own terms and privacy policy: https://www.spotify.com/legal/privacy-policy/',
+    body: 'Spotify handles authentication and streaming under Spotify’s own terms and privacy policy.',
+    link: { href: 'https://www.spotify.com/legal/privacy-policy/', label: 'spotify privacy policy' },
   },
   {
     title: 'requirements',
@@ -29,39 +29,39 @@ const sections = [
   },
   {
     title: 'retention',
-    body: 'Session cookies expire according to Spotify token lifetime and browser settings. You can end access by logging out of the app session in your browser (clear site cookies) or revoking the app in your Spotify account settings.',
+    body: 'Session cookies expire according to Spotify token lifetime and browser settings. You can end access by clearing site cookies or revoking the app in your Spotify account settings.',
   },
   {
     title: 'contact',
-    body: 'Questions about this policy: open an issue on the project repository linked from the app owner’s GitHub profile (terminal-player / terminal-playlist).',
+    body: 'Questions about this policy: open an issue on the project repository (terminal-player / terminal-playlist) on GitHub.',
   },
-];
+] as const;
+
+const pageStyle = {
+  minHeight: '100vh',
+  background: '#000000',
+  color: '#00cc6a',
+  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+  padding: '24px 16px',
+  lineHeight: 1.6,
+} as const;
 
 export default function PrivacyPage() {
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: 'var(--bg-base)',
-        color: 'var(--green-mid)',
-        fontFamily: 'var(--font-mono)',
-        padding: '24px 16px',
-        lineHeight: 1.6,
-      }}
-    >
+    <main style={pageStyle}>
       <article style={{ maxWidth: 640, margin: '0 auto' }}>
         <h1
           style={{
             margin: '0 0 8px',
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: 400,
-            color: 'var(--white)',
+            color: '#ffffff',
             textTransform: 'uppercase',
           }}
         >
           [PRIVACY POLICY]
         </h1>
-        <p style={{ margin: '0 0 20px', fontSize: 11, color: 'var(--gray-muted)' }}>
+        <p style={{ margin: '0 0 20px', fontSize: 12, color: '#888888' }}>
           last updated: may 2026 · terminal-playlist
         </p>
 
@@ -70,22 +70,29 @@ export default function PrivacyPage() {
             <h2
               style={{
                 margin: '0 0 6px',
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: 400,
-                color: 'var(--green-bright)',
+                color: '#00ff88',
                 textTransform: 'uppercase',
               }}
             >
               [{section.title}]
             </h2>
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--white)' }}>{section.body}</p>
+            <p style={{ margin: 0, fontSize: 13, color: '#e0e0e0' }}>{section.body}</p>
+            {'link' in section && section.link ? (
+              <p style={{ margin: '8px 0 0', fontSize: 13 }}>
+                <a href={section.link.href} style={{ color: '#00ff88' }}>
+                  {section.link.label}
+                </a>
+              </p>
+            ) : null}
           </section>
         ))}
 
-        <p style={{ marginTop: 24, fontSize: 11 }}>
-          <Link href="/login" style={{ color: 'var(--green-mid)' }}>
+        <p style={{ marginTop: 24, fontSize: 12 }}>
+          <a href="/login" style={{ color: '#00cc6a' }}>
             ← back to login
-          </Link>
+          </a>
         </p>
       </article>
     </main>

@@ -8,6 +8,11 @@ import { AuthErrorState } from '@/components/player/AuthErrorState';
 import { shellPrompt, logo } from '@/lib/ascii';
 import { useTypewriter } from '@/hooks/useTypewriter';
 
+const privacyPolicyHref =
+  process.env.NEXT_PUBLIC_BASE_URL != null && process.env.NEXT_PUBLIC_BASE_URL.length > 0
+    ? `${process.env.NEXT_PUBLIC_BASE_URL.replace(/\/$/, '')}/privacy`
+    : '/privacy';
+
 function LoginContent() {
   const searchParams = useSearchParams();
   const reason = searchParams.get('reason');
@@ -61,7 +66,7 @@ function LoginContent() {
         <div style={{ marginTop: '12px', color: 'var(--gray-muted)', fontSize: 11, lineHeight: 1.6 }}>
           requires spotify premium · playback stays in your browser
           <br />
-          <a href="/privacy" style={{ color: 'var(--green-mid)' }}>
+          <a href={privacyPolicyHref} style={{ color: 'var(--green-mid)' }}>
             privacy policy
           </a>
         </div>

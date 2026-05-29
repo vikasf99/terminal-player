@@ -3,7 +3,8 @@
 This app is already multi-user by design (per-browser OAuth cookies). Opening it to everyone is mostly **Spotify dashboard + hosting**, not an app rewrite.
 
 Live URL: https://terminal-player.vercel.app  
-Privacy policy: https://terminal-player.vercel.app/privacy
+Privacy policy: https://terminal-player.vercel.app/privacy  
+Static fallback (no JS): https://terminal-player.vercel.app/privacy.html
 
 ---
 
