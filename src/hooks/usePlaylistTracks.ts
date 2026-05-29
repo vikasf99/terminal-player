@@ -63,7 +63,7 @@ export const usePlaylistTracks = (playlistId: string | null): PlaylistTracksStat
               setTracks([]);
               setNeedsReauth(true);
               setError(
-                'playlist track access denied — sign out and re-authenticate after adding your email to the spotify app allowlist',
+                'could not load playlist tracks — sign in again with spotify premium or try a playlist you own',
               );
             }
             return;

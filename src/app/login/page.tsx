@@ -58,7 +58,13 @@ function LoginContent() {
       </div>
 
       {!showAuthError ? (
-        <div style={{ marginTop: '12px', color: 'var(--gray-muted)' }}>awaiting authentication...</div>
+        <div style={{ marginTop: '12px', color: 'var(--gray-muted)', fontSize: 11, lineHeight: 1.6 }}>
+          requires spotify premium · playback stays in your browser
+          <br />
+          <a href="/privacy" style={{ color: 'var(--green-mid)' }}>
+            privacy policy
+          </a>
+        </div>
       ) : null}
     </section>
   );

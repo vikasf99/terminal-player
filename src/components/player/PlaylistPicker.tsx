@@ -31,7 +31,7 @@ export function PlaylistPicker({
         {needsReauth ? (
           <>
             <p style={{ color: 'var(--gray-muted)', margin: '0 0 8px', lineHeight: 1.5 }}>
-              add your spotify email in the developer dashboard allowlist, then use re-authenticate (required after feb 2026 api changes).
+              sign in again with spotify premium. if this persists, your account may not have access while the app is in spotify development mode.
             </p>
             <Button
               variant="ghost"

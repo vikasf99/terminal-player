@@ -16,13 +16,12 @@ export function AuthErrorState({ compact = false }: AuthErrorStateProps) {
     >
       <div style={{ color: 'var(--magenta)' }}>[ERROR] authentication failed</div>
       <div style={{ color: 'var(--gray-muted)', marginTop: 6 }}>
-        run: npm run auth:refresh
+        your session may have expired.
         <br />
-        or visit{' '}
+        sign in again with a spotify premium account at{' '}
         <a href="/login" style={{ color: 'var(--green-mid)' }}>
           /login
-        </a>{' '}
-        to re-authenticate
+        </a>
       </div>
     </section>
   );
