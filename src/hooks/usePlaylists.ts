@@ -47,7 +47,7 @@ export const usePlaylists = (): PlaylistsState => {
           if (data.needsReauth || response.status === 403) {
             if (!cancelled) {
               setNeedsReauth(true);
-              setError('playlist access denied — sign in again to grant permissions');
+              setError('could not load playlists — sign in again with spotify premium');
             }
             return;
           }
