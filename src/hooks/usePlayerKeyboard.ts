@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { sendSpotifyControl } from '@/lib/spotifyControl';
 import { sendVolumeToSpotify } from '@/lib/volumeApi';
 import { usePlayerStore } from '@/stores/playerStore';
 
@@ -11,14 +12,6 @@ const isEditableTarget = (target: EventTarget | null): boolean => {
   }
   const tag = target.tagName.toLowerCase();
   return tag === 'input' || tag === 'textarea' || target.isContentEditable;
-};
-
-const sendControl = async (action: string, value?: string | number | boolean): Promise<void> => {
-  await fetch('/api/spotify/control', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, value }),
-  });
 };
 
 type UsePlayerKeyboardOptions = {
@@ -69,7 +62,7 @@ export const usePlayerKeyboard = ({
         event.preventDefault();
         const nextPlaying = !isPlaying;
         setPlayback(nextPlaying, usePlayerStore.getState().progressMs);
-        void sendControl(nextPlaying ? 'play' : 'pause');
+        void sendSpotifyControl({ action: nextPlaying ? 'play' : 'pause' });
         return;
       }
 
@@ -80,7 +73,7 @@ export const usePlayerKeyboard = ({
           usePlayerStore.getState().progressMs + 10_000,
         );
         setPlayback(isPlaying, next);
-        void sendControl('seek', next);
+        void sendSpotifyControl({ action: 'seek', value: next });
         return;
       }
 
@@ -88,7 +81,7 @@ export const usePlayerKeyboard = ({
         event.preventDefault();
         const next = Math.max(0, usePlayerStore.getState().progressMs - 10_000);
         setPlayback(isPlaying, next);
-        void sendControl('seek', next);
+        void sendSpotifyControl({ action: 'seek', value: next });
         return;
       }
 
@@ -114,7 +107,7 @@ export const usePlayerKeyboard = ({
         event.preventDefault();
         const next = !shuffle;
         setShuffle(next);
-        void sendControl('shuffle', next);
+        void sendSpotifyControl({ action: 'shuffle', value: next });
         return;
       }
 
@@ -122,7 +115,7 @@ export const usePlayerKeyboard = ({
         event.preventDefault();
         const next = !repeat;
         setRepeat(next);
-        void sendControl('repeat', next);
+        void sendSpotifyControl({ action: 'repeat', value: next });
       }
     };
 

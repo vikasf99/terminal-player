@@ -111,14 +111,10 @@ export const useSpotifyPlayer = (): SpotifyPlayerState => {
         });
       });
 
-      player.addListener('ready', async ({ device_id }: { device_id: string }) => {
+      player.addListener('ready', ({ device_id }: { device_id: string }) => {
         setDeviceId(device_id);
         setIsReady(true);
-        await fetch('/api/spotify/transfer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ deviceId: device_id }),
-        });
+        usePlayerStore.getState().setSdkDeviceId(device_id);
       });
 
       player.addListener('not_ready', ({ device_id }: { device_id: string }) => {
@@ -141,6 +137,7 @@ export const useSpotifyPlayer = (): SpotifyPlayerState => {
       playerRef.current = null;
       setIsReady(false);
       setDeviceId(null);
+      usePlayerStore.getState().setSdkDeviceId(null);
     };
   }, [setPlayback, setTrack]);
 

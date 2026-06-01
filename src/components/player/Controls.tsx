@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
+import { sendSpotifyControl } from '@/lib/spotifyControl';
 import { usePlayerStore } from '@/stores/playerStore';
 
 export function Controls() {
@@ -11,17 +12,9 @@ export function Controls() {
   const setShuffle = usePlayerStore((s) => s.setShuffle);
   const setRepeat = usePlayerStore((s) => s.setRepeat);
 
-  const send = async (action: string, value?: string | number | boolean): Promise<void> => {
-    await fetch('/api/spotify/control', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, value }),
-    });
-  };
-
   return (
     <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-      <Button variant="ghost" fullWidth={false} onClick={() => void send('previous')}>
+      <Button variant="ghost" fullWidth={false} onClick={() => void sendSpotifyControl({ action: 'previous' })}>
         ⏮ prev
       </Button>
       <Button
@@ -29,14 +22,14 @@ export function Controls() {
         fullWidth={false}
         onClick={() => {
           setPlayback(!isPlaying, usePlayerStore.getState().progressMs);
-          void send(isPlaying ? 'pause' : 'play');
+          void sendSpotifyControl({ action: isPlaying ? 'pause' : 'play' });
         }}
       >
         <span style={{ fontSize: 16, textShadow: isPlaying ? 'var(--glow-green)' : 'none' }}>
           {isPlaying ? '■ pause' : '▶ play'}
         </span>
       </Button>
-      <Button variant="ghost" fullWidth={false} onClick={() => void send('next')}>
+      <Button variant="ghost" fullWidth={false} onClick={() => void sendSpotifyControl({ action: 'next' })}>
         ⏭ next
       </Button>
       <Button
@@ -49,7 +42,7 @@ export function Controls() {
         onClick={() => {
           const next = !repeat;
           setRepeat(next);
-          void send('repeat', next);
+          void sendSpotifyControl({ action: 'repeat', value: next });
         }}
       >
         ↺ repeat
@@ -64,7 +57,7 @@ export function Controls() {
         onClick={() => {
           const next = !shuffle;
           setShuffle(next);
-          void send('shuffle', next);
+          void sendSpotifyControl({ action: 'shuffle', value: next });
         }}
       >
         ⇌ shuffle

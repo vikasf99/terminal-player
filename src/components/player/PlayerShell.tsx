@@ -7,6 +7,7 @@ import { TerminalWindow } from '@/components/layout/TerminalWindow';
 import { NowPlaying } from '@/components/player/NowPlaying';
 import { ProgressBar } from '@/components/player/ProgressBar';
 import { Controls } from '@/components/player/Controls';
+import { DevicePicker } from '@/components/player/DevicePicker';
 import { VolumeControl } from '@/components/player/VolumeControl';
 import { TrackList } from '@/components/player/TrackList';
 import { PlaylistPicker } from '@/components/player/PlaylistPicker';
@@ -42,7 +43,8 @@ export function PlayerShell() {
   const isMobile = viewport === 'mobile';
   const isTablet = viewport === 'tablet';
 
-  const { deviceId, isReady } = useSpotifyPlayer();
+  useSpotifyPlayer();
+  const playbackDeviceId = usePlayerStore((s) => s.playbackDeviceId);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const {
@@ -55,28 +57,9 @@ export function PlayerShell() {
   useSpotifyBeatSync(currentTrack, isPlaying);
 
   useEffect(() => {
-    setVolumeDeviceId(deviceId);
+    setVolumeDeviceId(playbackDeviceId);
     return () => setVolumeDeviceId(null);
-  }, [deviceId]);
-
-  useEffect(() => {
-    if (!isReady || !deviceId) {
-      return;
-    }
-
-    const syncVolume = async (): Promise<void> => {
-      const response = await fetch('/api/spotify/current-track', { cache: 'no-store' });
-      if (!response.ok) {
-        return;
-      }
-      const data = (await response.json()) as { volumePercent?: number | null };
-      if (typeof data.volumePercent === 'number') {
-        usePlayerStore.getState().setVolume(data.volumePercent);
-      }
-    };
-
-    void syncVolume();
-  }, [deviceId, isReady]);
+  }, [playbackDeviceId]);
 
   const [selectedPlaylist, setSelectedPlaylist] = useState<SpotifyPlaylist | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -128,10 +111,10 @@ export function PlayerShell() {
       await playPlaylistTrack({
         playlistId,
         offset: index,
-        deviceId: isReady ? deviceId : null,
+        deviceId: playbackDeviceId,
       });
     },
-    [deviceId, isReady, playlistId, tracks],
+    [playbackDeviceId, playlistId, tracks],
   );
 
   useEffect(() => {
@@ -219,10 +202,11 @@ export function PlayerShell() {
               </Button>
             </div>
           ) : null}
+          <DevicePicker />
           <NowPlaying isBuffering={isBuffering} />
           <ProgressBar />
           <Controls />
-          <VolumeControl deviceId={deviceId} />
+          <VolumeControl deviceId={playbackDeviceId} />
           <KeyboardShortcutsHint onOpen={() => setShortcutsOpen(true)} />
         </TerminalWindow>
       </div>

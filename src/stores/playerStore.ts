@@ -16,6 +16,9 @@ type PlayerState = {
   isBeat: boolean;
   shuffle: boolean;
   repeat: boolean;
+  playbackDeviceId: string | null;
+  playbackDeviceName: string;
+  sdkDeviceId: string | null;
   matrixSpeed: number;
   matrixBrightness: number;
   matrixDensity: number;
@@ -26,6 +29,8 @@ type PlayerState = {
   setVolume: (v: number) => void;
   setShuffle: (v: boolean) => void;
   setRepeat: (v: boolean) => void;
+  setPlaybackDevice: (id: string | null, name: string) => void;
+  setSdkDeviceId: (id: string | null) => void;
 };
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
@@ -42,6 +47,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isBeat: false,
   shuffle: false,
   repeat: false,
+  playbackDeviceId: null,
+  playbackDeviceName: '',
+  sdkDeviceId: null,
   matrixSpeed: 1.5,
   matrixBrightness: 0.5,
   matrixDensity: 0.3,
@@ -93,4 +101,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setShuffle: (shuffle) => set({ shuffle }),
 
   setRepeat: (repeat) => set({ repeat }),
+
+  setPlaybackDevice: (playbackDeviceId, playbackDeviceName) => {
+    set({ playbackDeviceId, playbackDeviceName });
+  },
+
+  setSdkDeviceId: (sdkDeviceId) => set({ sdkDeviceId }),
 }));

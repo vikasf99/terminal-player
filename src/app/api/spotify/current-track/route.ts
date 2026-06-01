@@ -16,6 +16,7 @@ export async function GET(): Promise<NextResponse> {
       volumePercent: snapshot.volumePercent,
       isPlaying: snapshot.isPlaying,
       progressMs: snapshot.progressMs,
+      device: snapshot.device,
     });
   } catch (error) {
     if (error instanceof SpotifyApiError) {

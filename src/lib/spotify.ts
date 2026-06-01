@@ -58,6 +58,7 @@ export type PlaybackSnapshot = {
   isPlaying: boolean;
   progressMs: number;
   volumePercent: number | null;
+  device: { id: string; name: string; type: string } | null;
 };
 
 export const getPlaybackSnapshot = async (token: string): Promise<PlaybackSnapshot> => {
@@ -66,7 +67,12 @@ export const getPlaybackSnapshot = async (token: string): Promise<PlaybackSnapsh
       is_playing: boolean;
       progress_ms: number;
       item: SpotifyTrack | null;
-      device?: { volume_percent?: number | null };
+      device?: {
+        id?: string;
+        name?: string;
+        type?: string;
+        volume_percent?: number | null;
+      };
     }>('/me/player', token);
 
     const track = data.item
@@ -77,16 +83,26 @@ export const getPlaybackSnapshot = async (token: string): Promise<PlaybackSnapsh
         }
       : null;
 
+    const device =
+      data.device?.id && data.device.name
+        ? {
+            id: data.device.id,
+            name: data.device.name,
+            type: data.device.type ?? 'Unknown',
+          }
+        : null;
+
     return {
       track,
       isPlaying: data.is_playing,
       progressMs: data.progress_ms ?? 0,
       volumePercent:
         typeof data.device?.volume_percent === 'number' ? data.device.volume_percent : null,
+      device,
     };
   } catch (error) {
     if (error instanceof SpotifyApiError && error.status === 204) {
-      return { track: null, isPlaying: false, progressMs: 0, volumePercent: null };
+      return { track: null, isPlaying: false, progressMs: 0, volumePercent: null, device: null };
     }
     throw error;
   }

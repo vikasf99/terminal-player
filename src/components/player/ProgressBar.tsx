@@ -12,25 +12,24 @@ const formatMs = (ms: number): string => {
 };
 
 export function ProgressBar() {
-  const progressMs = usePlayerStore((s) => s.progressMs);
+  const getInterpolatedProgressMs = usePlayerStore((s) => s.getInterpolatedProgressMs);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const durationMs = usePlayerStore((s) => s.currentTrack?.duration_ms ?? 0);
-  const setPlayback = usePlayerStore((s) => s.setPlayback);
+  const [displayMs, setDisplayMs] = useState(0);
 
   useEffect(() => {
-    if (!isPlaying || !durationMs) {
-      return;
-    }
-    const timer = window.setInterval(() => {
-      setPlayback(true, Math.min(durationMs, usePlayerStore.getState().progressMs + 250));
-    }, 250);
+    const tick = (): void => {
+      setDisplayMs(getInterpolatedProgressMs());
+    };
+    tick();
+    const timer = window.setInterval(tick, 200);
     return () => window.clearInterval(timer);
-  }, [durationMs, isPlaying, setPlayback]);
+  }, [getInterpolatedProgressMs, isPlaying]);
 
   const pct = useMemo(() => {
     if (!durationMs) return 0;
-    return Math.max(0, Math.min(100, (progressMs / durationMs) * 100));
-  }, [progressMs, durationMs]);
+    return Math.max(0, Math.min(100, (displayMs / durationMs) * 100));
+  }, [displayMs, durationMs]);
 
   return (
     <section style={{ marginTop: 12, fontFamily: 'var(--font-mono)' }}>
@@ -38,7 +37,7 @@ export function ProgressBar() {
         <div style={{ width: `${pct}%`, height: '100%', background: 'var(--green-bright)' }} />
       </div>
       <div style={{ marginTop: 6, color: 'var(--gray-muted)', fontSize: 12 }}>
-        {formatMs(progressMs)} / {formatMs(durationMs)}
+        {formatMs(displayMs)} / {formatMs(durationMs)}
       </div>
     </section>
   );

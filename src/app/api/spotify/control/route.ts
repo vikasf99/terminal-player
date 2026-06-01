@@ -94,11 +94,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const endpoint = endpointFor(body.action, body.value);
-  const volumeDeviceQuery =
-    body.action === 'volume' && body.deviceId
-      ? `&device_id=${encodeURIComponent(body.deviceId)}`
-      : '';
-  const response = await fetch(`${endpoint.url}${volumeDeviceQuery}`, {
+  const withDevice = (url: string): string => {
+    if (!body.deviceId) {
+      return url;
+    }
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}device_id=${encodeURIComponent(body.deviceId)}`;
+  };
+
+  const response = await fetch(withDevice(endpoint.url), {
     method: endpoint.method,
     headers: {
       Authorization: `Bearer ${token}`,

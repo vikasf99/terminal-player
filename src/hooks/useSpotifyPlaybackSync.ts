@@ -11,12 +11,14 @@ type PlaybackResponse = {
   volumePercent: number | null;
   isPlaying?: boolean;
   progressMs?: number;
+  device?: { id: string; name: string; type: string } | null;
 };
 
 export const useSpotifyPlaybackSync = (): void => {
   const setTrack = usePlayerStore((state) => state.setTrack);
   const setPlayback = usePlayerStore((state) => state.setPlayback);
   const setVolume = usePlayerStore((state) => state.setVolume);
+  const setPlaybackDevice = usePlayerStore((state) => state.setPlaybackDevice);
 
   useEffect(() => {
     let intervalId: number | null = null;
@@ -37,6 +39,10 @@ export const useSpotifyPlaybackSync = (): void => {
         const progressMs = data.progressMs ?? data.track?.progress_ms ?? 0;
         setPlayback(isPlaying, progressMs);
 
+        if (data.device?.id) {
+          setPlaybackDevice(data.device.id, data.device.name);
+        }
+
         if (typeof data.volumePercent === 'number' && shouldApplyRemoteVolume()) {
           const current = usePlayerStore.getState().volumePercent;
           if (Math.abs(current - data.volumePercent) >= 1) {
@@ -55,7 +61,7 @@ export const useSpotifyPlaybackSync = (): void => {
       void poll();
       intervalId = window.setInterval(() => {
         void poll();
-      }, 1500);
+      }, 800);
     };
 
     const stop = (): void => {
@@ -80,5 +86,5 @@ export const useSpotifyPlaybackSync = (): void => {
       stop();
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [setPlayback, setTrack, setVolume]);
+  }, [setPlayback, setPlaybackDevice, setTrack, setVolume]);
 };

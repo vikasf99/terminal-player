@@ -4,6 +4,7 @@ import { getAccessToken, SpotifyApiError } from '@/lib/spotify';
 
 type TransferBody = {
   deviceId?: string;
+  play?: boolean;
 };
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -25,7 +26,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     },
     body: JSON.stringify({
       device_ids: [body.deviceId],
-      play: true,
+      play: body.play !== false,
     }),
   });
 
