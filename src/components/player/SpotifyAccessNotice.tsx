@@ -1,5 +1,6 @@
 'use client';
 
+import { AccessRequestLink } from '@/components/player/AccessRequestLink';
 import { Button } from '@/components/ui/Button';
 import type { SpotifyAccessReason } from '@/types/spotifyAccess';
 
@@ -31,6 +32,7 @@ export function SpotifyAccessNotice({ reason }: SpotifyAccessNoticeProps) {
         >
           [SIGN IN AGAIN AFTER INVITE]
         </Button>
+        <AccessRequestLink prefix="need an invite?" />
       </div>
     );
   }

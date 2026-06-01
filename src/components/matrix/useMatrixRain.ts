@@ -144,15 +144,18 @@ export const useMatrixRain = (
       );
     }
 
-    if (isBeatRef.current && columns.length > 0 && energy > 0.08) {
-      const burstCount = 2 + Math.floor(energy * 6);
+    const bassDrive = usePlayerStore.getState().bassEnergy;
+    const burstDrive = Math.max(energy, bassDrive * 0.9);
+
+    if (isBeatRef.current && columns.length > 0 && burstDrive > 0.06) {
+      const burstCount = 2 + Math.floor(burstDrive * 8);
       for (let i = 0; i < burstCount; i += 1) {
         const idx = Math.floor(Math.random() * columns.length);
         const burst = columns[idx];
         burst.active = true;
         burst.y = -Math.random() * currentConfig.fontSize * 4;
-        burst.length = randomTrailLength() + Math.floor(energy * 10);
-        burst.speed = Math.max(0.4, currentConfig.speed * (1.2 + energy));
+        burst.length = randomTrailLength() + Math.floor(burstDrive * 14);
+        burst.speed = Math.max(0.4, currentConfig.speed * (1.3 + burstDrive * 1.4));
         burst.chars = [];
       }
       isBeatRef.current = false;

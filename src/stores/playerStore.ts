@@ -66,17 +66,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   setBeatData: (data) => {
     const current = get().beatIntensity;
-    const target = clamp01(data.bassEnergy * 0.9 + (data.isBeat ? 0.35 : 0));
+    const bass = clamp01(data.bassEnergy);
+    const target = clamp01(bass * 1.05 + (data.isBeat ? 0.45 : 0));
     const nextIntensity = data.isBeat
-      ? clamp01(current * 0.55 + target * 0.45)
-      : clamp01(current * 0.94 + target * 0.06);
+      ? clamp01(current * 0.3 + target * 0.7)
+      : clamp01(current * 0.86 + target * 0.14);
 
     set({
       beatIntensity: nextIntensity,
-      bassEnergy: data.bassEnergy,
+      bassEnergy: bass,
       bpm: data.bpm,
       isBeat: data.isBeat,
-      ...computeMatrixParams(nextIntensity, get().volumePercent),
+      ...computeMatrixParams(nextIntensity, get().volumePercent, bass),
     });
   },
 

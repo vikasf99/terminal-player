@@ -22,10 +22,35 @@ Static fallback (no JS): https://terminal-player.vercel.app/privacy.html
 
 Spotify’s **Extended Quota Mode** (unlimited users) is primarily aimed at organizations. As an individual you have three realistic paths:
 
+### Request access link (login page)
+
+Visitors who are not on the allowlist can click **request access** on `/login`.
+
+Configure in Vercel (optional — defaults to a GitHub issue template):
+
+| Variable | Example |
+|----------|---------|
+| `NEXT_PUBLIC_ACCESS_REQUEST_URL` | `https://forms.gle/your-form-id` |
+| `NEXT_PUBLIC_ACCESS_REQUEST_EMAIL` | `you@example.com` (used if URL is unset) |
+
+If both are unset, the app links to:  
+`https://github.com/vikasf99/terminal-player/issues/new` (access request template).
+
+Redeploy after changing env vars.
+
+---
+
 ### Path A — Extended quota (best for “anyone can use it”)
 
+**If you do not see “Extended quota” or “Request extension” in the dashboard:** Spotify often hides this for new individual apps. There may be no in-dashboard button. Check:
+
+1. [Dashboard](https://developer.spotify.com/dashboard) → your app → **Settings** → look for **Quota extension** / **Extension request** (wording varies).
+2. [Quota modes documentation](https://developer.spotify.com/documentation/web-api/concepts/quota-modes) — describes development vs extended quota.
+3. [Developer Community](https://community.spotify.com/t5/Spotify-for-Developers/bd-p/Spotify_Developer) — search “extended quota” for current application process.
+4. Some developers only get extended quota after a **Partner Application** review; individuals may need to wait or use a registered business entity.
+
 1. Open [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) → your app.
-2. Submit **Extended Quota** / partner application with:
+2. Submit **Extended Quota** / partner application (when available) with:
    - Live app URL: `https://terminal-player.vercel.app`
    - Privacy policy: `https://terminal-player.vercel.app/privacy`
    - Redirect URI: `https://terminal-player.vercel.app/api/auth/callback`
