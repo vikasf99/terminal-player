@@ -63,16 +63,16 @@ function LoginContent() {
         </Button>
       </div>
 
-      <div style={{ marginTop: '12px', color: 'var(--gray-muted)', fontSize: 11, lineHeight: 1.6 }}>
-        requires spotify premium · playback stays in your browser
-        <br />
-        invite-only while the app is in spotify development mode (max 5 accounts)
-        <br />
+      <p style={{ margin: '12px 0 0', color: 'var(--gray-muted)', fontSize: 11 }}>
+        spotify premium required
+      </p>
+      <p style={{ margin: '6px 0 0', fontSize: 11 }}>
         <a href={privacyPolicyHref} style={{ color: 'var(--green-mid)' }}>
-          privacy policy
+          privacy
         </a>
-        <AccessRequestLink />
-      </div>
+        <span style={{ color: 'var(--gray-muted)' }}> · </span>
+        <AccessRequestLink compact />
+      </p>
     </section>
   );
 }
